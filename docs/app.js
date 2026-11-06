@@ -7,6 +7,7 @@
   const B45 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
   const B45_INDEX = Object.fromEntries([...B45].map((ch, i) => [ch, i]));
   const QR_PATTERN = /^PV1:([TO]):([0-9A-F]{12}):([0-9]{3}):([0-9]{3}):([0-9A-Z $%*+\-./:]*)$/;
+  const EXACT_PATTERN = /^PV2:([MF]):([0-9A-F]{12}):([0-9]{4}):([0-9]{4}):([0-9A-Z $%*+\-./:]*)$/;
   let files = [];
   let resultURL = null;
   const setStatus = (message, error = false) => {
@@ -149,6 +150,63 @@
     return { kind, id: group, count, bytes };
   }
 
+  // PV2 exact audio stores the original file bytes, not newly encoded audio.
+  // QR 0000 is a JSON manifest; QRs 0001...N carry the original file bytes.
+  // SHA-256 verifies byte-for-byte identity before the file is released.
+  async function rebuildExact(codes) {
+    let id=null,total=null,manifest=null;
+    const chunks=new Map();
+    for(const code of codes){
+      const match=EXACT_PATTERN.exec(code);
+      if(!match) continue;
+      const [,type,hash,indexText,totalText,payload]=match;
+      const number=Number(indexText),n=Number(totalText);
+      if(!n||n>479||number>n)throw Error("Invalid exact-audio sequence.");
+      if(id===null){id=hash;total=n;}
+      if(hash!==id||total!==n)throw Error("Different PaperVoice recordings were mixed.");
+      const bytes=b45decode(payload);
+      const key=number;
+      if(type==="M" && number!==0 || type==="F" && number===0)
+        throw Error("Invalid exact-audio file manifest.");
+      if(chunks.has(key)){
+        const existing=chunks.get(key);
+        if(existing.length!==bytes.length || existing.some((b,i)=>b!==bytes[i]))
+          throw Error("Conflicting QR "+number+"; rescan this page.");
+      } else chunks.set(key,bytes);
+    }
+    if(!id) throw Error("No exact-audio QR codes found.");
+    const missing=[];
+    for(let i=0;i<=total;i++)if(!chunks.has(i))missing.push(i);
+    if(missing.length)
+      throw Error("Missing "+missing.length+" code(s) including "+
+        missing.slice(0,15).map(i=>i===0?"manifest":String(i)).join(", ")+
+        ". Every QR from the printed document is required.");
+    try{
+      manifest=JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(chunks.get(0)));
+    }catch(e){throw Error("The file manifest was damaged. Rescan the first QR.");}
+    if(!manifest||!Number.isSafeInteger(manifest.size)||
+       manifest.size<1||manifest.size>480*850||
+       !/^[0-9A-F]{64}$/.test(manifest.sha256||"") ||
+       typeof manifest.name!=="string")
+       throw Error("Invalid exact-original audio file manifest.");
+    const bytes=new Uint8Array(manifest.size);
+    let offset=0;
+    for(let i=1;i<=total;i++){
+      const part=chunks.get(i);
+      if(offset+part.length>bytes.length)throw Error("Audio file length mismatch.");
+      bytes.set(part,offset);offset+=part.length;
+    }
+    if(offset!==bytes.length)throw Error("Audio file incomplete.");
+    const sha=new Uint8Array(await crypto.subtle.digest("SHA-256",bytes));
+    const actual=Array.from(sha,b=>b.toString(16).padStart(2,"0")).join("").toUpperCase();
+    if(actual!==manifest.sha256 || !actual.startsWith(id))
+      throw Error("Checksum mismatch. A QR code was damaged; the original file was not reconstructed.");
+    const safeName=manifest.name.replace(/[\/\\\x00-\x1F]/g,"_").slice(0,120)||"PaperVoice_original.bin";
+    const mime=typeof manifest.mime==="string"&&manifest.mime.startsWith("audio/") ?
+      manifest.mime : "application/octet-stream";
+    return {id,count:total+1,bytes,filename:safeName,mime};
+  }
+
   // ZXing reads one QR at a time. For full-page PDFs we crop into overlapping
   // cells so all 2x3 codes can be decoded without a server or camera permissions.
 
@@ -159,7 +217,7 @@
     const context = canvas.getContext("2d", { willReadFrequently: true });
     const picture = context.getImageData(0, 0, canvas.width, canvas.height);
     const results = await window.zbarWasm.scanImageData(picture);
-    return results.map(result => result.decode()).filter(text => text.startsWith("PV1:"));
+    return results.map(result => result.decode()).filter(text => /^PV[12]:/.test(text));
   }
 
   function tryZxing(canvas) {
@@ -188,9 +246,9 @@
     return canvas;
   }
 
-  async function readCanvas(canvas) {
+  async function readCanvas(canvas, exactPage=false) {
     const seen = new Set();
-    const add = text => { if (text?.startsWith("PV1:")) seen.add(text); };
+    const add = text => { if (/^PV[12]:/.test(text||"")) seen.add(text); };
     if ("BarcodeDetector" in window) {
       try {
         const detector = new BarcodeDetector({formats: ["qr_code"]});
@@ -202,21 +260,31 @@
     } catch (error) { console.warn("ZBar whole-image scan:", error); }
     add(tryZxing(canvas));
 
-    // Crop with generous margins. The PDF has rows of dense QR codes; partial
-    // crops that cut off a finder square cannot decode reliably.
-    const boxes = [
-      [0, 0, .55, .53], [.45, 0, .55, .53],
-      [0, .37, .55, .49], [.45, .37, .55, .49],
-      [0, .52, .55, .48], [.45, .52, .55, .48]
-    ];
-    for (let i = 0; i < boxes.length; i++) {
-      const region = crop(canvas, ...boxes[i]);
+    // Exact-original PDFs use 3 columns x 4 rows on each Letter-size page.
+    // For a rendered PDF, use known cell centers; legacy PV1 is 2 x 2.
+    let boxes;
+    if (exactPage || [...seen].some(code => code.startsWith("PV2:"))) {
+      boxes = [];
+      const xpos=[26,229,432], ypos=[83,249,415,581];
+      for (const y of ypos) for (const x of xpos)
+        boxes.push([(x-6)/612,(y-6)/792,166/612,166/792]);
+    } else {
+      boxes = [
+        [0, 0, .55, .53], [.45, 0, .55, .53],
+        [0, .37, .55, .49], [.45, .37, .55, .49],
+        [0, .52, .55, .48], [.45, .52, .55, .48]
+      ];
+    }
+    // The full-image multi-QR scan often finds all codes. Individual crops
+    // recover codes it missed because of density or page rendering.
+    for (let i=0;i<boxes.length;i++) {
+      const region=crop(canvas,...boxes[i]);
       try {
-        for (const code of await scanWithZbar(region)) add(code);
-        add(tryZxing(region));
-      } catch (error) { console.warn("QR crop scan:", error); }
-      region.width = region.height = 0;
-      if (i % 2 === 1) await yieldUI();
+        for(const code of await scanWithZbar(region)) add(code);
+        if(!exactPage) add(tryZxing(region));
+      } catch(error){ console.warn("QR crop scan:",error); }
+      region.width=region.height=0;
+      if(i%3===2) await yieldUI();
     }
     return [...seen];
   }
@@ -241,21 +309,23 @@
       if (!window.pdfjsLib) throw new Error("The PDF reader failed to load; check your internet connection.");
       const documentTask = pdfjsLib.getDocument({data: new Uint8Array(await file.arrayBuffer())});
       const pdf = await documentTask.promise;
-      if (pdf.numPages > 12) throw new Error("PDF too long: 12 pages maximum.");
+      if (pdf.numPages > 40) throw new Error("PDF too long: the browser limit is 40 pages.");
       let found = [];
       try {
         for (let i = 1; i <= pdf.numPages; i++) {
           progress.textContent = "Scanning PDF page " + i + " of " + pdf.numPages + "…";
           await yieldUI();
           const page = await pdf.getPage(i);
+          const pageText = await page.getTextContent();
+          const isExact = pageText.items.some(item => item.str && item.str.includes("EXACT ORIGINAL"));
           const dimensions = page.getViewport({ scale: 1 });
-          const scale = Math.min(2.0, 2400 / Math.max(dimensions.width, dimensions.height));
+          const scale = Math.min(isExact?2.7:2.0, 2600 / Math.max(dimensions.width, dimensions.height));
           const viewport = page.getViewport({scale});
           const canvas = document.createElement("canvas");
           canvas.width = Math.round(viewport.width);
           canvas.height = Math.round(viewport.height);
           await page.render({canvasContext: canvas.getContext("2d"), viewport}).promise;
-          found.push(...await readCanvas(canvas));
+          found.push(...await readCanvas(canvas,isExact));
           canvas.width = canvas.height = 0;
           page.cleanup();
         }
@@ -381,19 +451,39 @@
         try { codes.push(...await scanFile(files[i])); }
         catch (error) { throw new Error(files[i].name + ": " + error.message); }
       }
-      const message = await rebuild([...new Set(codes)]);
-      progress.textContent = "Audio recovered from " + message.count + " QR codes. Decoding speech…";
-      await yieldUI();
-      const pcm = message.kind === "T" ? await decodeTiny(message.bytes) : await decodeClear(message.bytes);
-      progress.textContent = "Making MP3…";
-      await yieldUI();
-      const mp3 = await encodeMp3(pcm);
-      resultURL = URL.createObjectURL(mp3);
-      audio.src = resultURL;
-      download.href = resultURL;
-      download.download = "PaperVoice_" + message.id + ".mp3";
-      info.textContent = message.count + " QR codes • " + (pcm.samples.length / pcm.rate).toFixed(1) +
-        " seconds • " + formatSize(mp3.size);
+      codes=[...new Set(codes)];
+      const exact=codes.some(code=>code.startsWith("PV2:"));
+      if(exact&&codes.some(code=>code.startsWith("PV1:")))
+        throw Error("These scans contain two different PaperVoice formats. Upload only one recording.");
+      if(exact){
+        progress.textContent="Reassembling and verifying original file bytes…";
+        await yieldUI();
+        const original=await rebuildExact(codes);
+        const saved=new Blob([original.bytes],{type:original.mime});
+        resultURL=URL.createObjectURL(saved);
+        audio.src=resultURL;
+        download.href=resultURL;
+        download.download=original.filename;
+        download.textContent="↓ Download exact original "+original.filename;
+        info.textContent="EXACT original • "+original.count+
+          " QR codes • "+formatSize(original.bytes.length)+" • SHA-256 matches.";
+        setStatus("Success — every original audio byte was recovered. No transcoding or quality loss.");
+      } else {
+        const message=await rebuild(codes);
+        progress.textContent="Audio recovered from "+message.count+" QR codes. Decoding speech…";
+        await yieldUI();
+        const pcm=message.kind==="T"?await decodeTiny(message.bytes):await decodeClear(message.bytes);
+        progress.textContent="Making MP3…";await yieldUI();
+        const mp3=await encodeMp3(pcm);
+        resultURL=URL.createObjectURL(mp3);
+        audio.src=resultURL;
+        download.href=resultURL;
+        download.download="PaperVoice_"+message.id+".mp3";
+        download.textContent="↓ Download MP3";
+        info.textContent=message.count+" QR codes • "+(pcm.samples.length/pcm.rate).toFixed(1)+
+          " seconds • "+formatSize(mp3.size);
+        setStatus("Success — legacy compressed recording reconstructed.");
+      }
       output.hidden = false;
       setStatus("Success — your recording was reconstructed locally on this device.");
       progress.textContent = "";
@@ -403,7 +493,7 @@
       progress.textContent = "";
     } finally {
       decodeButton.disabled = !files.length;
-      decodeButton.textContent = "Decode & make MP3";
+      decodeButton.textContent = "Decode & recover audio";
     }
   });
   refreshFiles();
