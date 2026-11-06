@@ -1,0 +1,7 @@
+{
+  "name": "papervoice",
+  "compatibility_date": "2026-11-06",
+  "assets": {
+    "directory": "./docs"
+  }
+}
