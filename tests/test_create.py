@@ -43,6 +43,7 @@ async def main():
             assert all(v=="function" for v in modules.values()),modules
             await page.locator("#tab-create").click()
             assert await page.locator("#create-panel").is_visible()
+            await page.locator("#encoding-mode").select_option("tiny")
             await page.locator("#source-audio").set_input_files(str(WAV))
             await page.locator("#make-qr").click()
             await page.locator("#create-preview").wait_for(state="visible",timeout=120000)
