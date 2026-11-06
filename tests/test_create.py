@@ -50,6 +50,14 @@ async def main():
             print("QR creation:",summary,flush=True)
             assert "19.3" in summary,summary
             assert "4 QR codes" in summary,summary
+            preview_result=await page.evaluate("""async ()=>{
+              const canvas=document.querySelector('#qr-list canvas');
+              const image=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height);
+              const codes=await zbarWasm.scanImageData(image);
+              return codes.map(code=>code.decode().slice(0,24));
+            }""")
+            print("Preview QR scan:",preview_result,flush=True)
+            assert preview_result and preview_result[0].startswith("PV1:T:"), preview_result
             async with page.expect_download(timeout=120000) as download_info:
                 await page.locator("#download-sheet").click()
             artifact=await download_info.value
@@ -60,7 +68,11 @@ async def main():
             assert await page.locator("#decode-panel").is_visible()
             await page.locator("#picker").set_input_files(str(PDF))
             await page.locator("#decode").click()
-            await page.locator("#output").wait_for(state="visible",timeout=120000)
+            await page.wait_for_timeout(5000)
+            current=await page.locator("#status").inner_text()
+            if "No PaperVoice QR codes" in current or "Missing QR" in current:
+                raise RuntimeError("Generated PDF did not decode: "+current)
+            await page.locator("#output").wait_for(state="visible",timeout=25000)
             restored=await page.locator("#info").inner_text()
             print("Recovered recording:",restored,flush=True)
             assert "4 QR codes" in restored and "19.3 seconds" in restored,restored
