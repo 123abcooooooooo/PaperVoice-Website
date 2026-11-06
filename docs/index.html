@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101727">
-<meta name="description" content="Recover a voice message from PaperVoice QR codes and download it as MP3. No uploads, no server, no subscription.">
+<meta name="description" content="Print an original audio file losslessly as QR codes, or recover one by scanning. Local browser processing.">
 <title>PaperVoice — Voice from paper</title>
 <style>
 :root{color-scheme:dark;--base:#0f1424;--ink:#f5f7fc;--muted:#abb9d0;--card:#1c2941;--border:#3b4d68;--mint:#72e6ce;--lav:#b8b9ff}
@@ -46,6 +46,8 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid #36445f;padding-to
 #download-sheet:disabled{opacity:.4}
 #qr-summary{font-size:13px;color:#d0e9e0;line-height:1.6}
 .qr-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+.encoding-choice{width:100%;padding:14px 12px;background:#18263f;color:#fff;border:1px solid #617390;border-radius:12px;font-size:14px;margin-bottom:8px}
+.estimate{font-size:13px;color:#a6e6dc;line-height:1.5;margin:4px 0 16px}
 .qr-item{min-width:0;background:#fff;border-radius:10px;padding:12px;margin:0;text-align:center;color:#1a2333}
 .qr-item canvas{display:block;width:100%;max-width:225px;height:auto;margin:auto;image-rendering:pixelated}
 .qr-item figcaption{font-size:12px;font-weight:700;margin-top:8px}
@@ -82,7 +84,7 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid #36445f;padding-to
 <p class="note">All QR codes for one message are needed. The recording is inside the codes, not on a website.</p>
 <div id="files" aria-live="polite"></div>
 <div class="controls">
-<button id="decode" class="primary" type="button" disabled>Decode &amp; make MP3</button>
+<button id="decode" class="primary" type="button" disabled>Decode &amp; recover audio</button>
 <button id="clear" class="secondary" type="button" hidden>Clear files</button>
 </div>
 <div id="status" class="status" role="status" aria-live="polite"></div>
@@ -90,17 +92,17 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid #36445f;padding-to
 <div class="output" id="output" hidden>
 <h3>✓ Voice recovered!</h3><p id="info"></p>
 <audio id="audio" controls preload="metadata"></audio>
-<a id="download" class="download">↓ Download MP3</a>
+<a id="download" class="download">↓ Download recovered audio</a>
 </div>
 <div class="privacy"><span>🔒</span><span>Your voice recordings and photos stay on your device. No media uploads, server audio processing, or usage-based conversion fees. Cloudflare Access handles website sign-in. Browser libraries are downloaded when opening this page.</span></div>
 </section>
 <section class="panel" id="create-panel" role="tabpanel" aria-labelledby="tab-create" hidden>
   <h2>Put your voice on paper.</h2>
-  <p class="small">Record a message or upload audio. PaperVoice compresses your voice and stores the actual recording across printable QR codes.</p>
+  <p class="small">Preserve the full original audio quality, without the robotic speech codec. Select <strong>Exact original</strong> to store every byte of the input file in the printed QR patterns.</p>
   <label class="upload-label" for="source-audio">Choose a recording</label>
   <div class="uploader">
     <input id="source-audio" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.opus,.webm">
-    <span>MP3, M4A, WAV and other formats supported by your browser. Maximum 90 seconds.</span>
+    <span>MP3, M4A, WAV or other audio formats. Exact mode retains the file's original format and bytes.</span>
   </div>
   <div class="record-box">
     <h3>Or record right here</h3>
@@ -111,6 +113,12 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid #36445f;padding-to
       <span id="record-timer" aria-live="polite">0:00</span>
     </div>
   </div>
+  <label class="upload-label" for="encoding-mode">Encoding quality</label>
+  <select id="encoding-mode" class="encoding-choice" aria-describedby="exact-estimate">
+    <option value="exact" selected>Exact original — zero additional quality loss</option>
+    <option value="tiny">Tiny speech — low-quality Codec 2 (robotic)</option>
+  </select>
+  <p id="exact-estimate" class="estimate" aria-live="polite">Exact original preserves the original audio file bit for bit. This can take many printed pages.</p>
   <div id="source-info" aria-live="polite"></div>
   <audio id="source-preview" controls preload="metadata" hidden></audio>
   <div class="create-controls">
@@ -123,17 +131,17 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid #36445f;padding-to
     <h3>✓ QR voice message created!</h3>
     <p id="qr-summary"></p>
     <button id="download-sheet" type="button">↓ Download printable PDF</button>
-    <p style="margin-top:13px">Each code contains part of your recording. Print or share every page, and scan them with the <strong>Decode paper</strong> tab.</p>
+    <p style="margin-top:13px">Every QR code is essential. Print or share <strong>every page</strong>, then upload the PDF in the Decode paper tab. Exact original mode reconstructs the same audio file; no audio conversion is performed.</p>
     <div id="qr-list" class="qr-grid" aria-label="Generated QR codes"></div>
   </div>
-  <div class="privacy"><span>🔒</span><span>Your audio is processed locally, never uploaded to a server. Codec 2 is designed for speech; the recovered voice may sound robotic, especially for music. A 30-second recording typically needs several QR codes.</span></div>
+  <div class="privacy"><span>🔒</span><span>Exact original mode does not recompress your MP3; its SHA-256 verified bytes are preserved. It may require dozens of sheets for even a short MP3. Direct microphone recording first uses your browser's recording format, which can itself be lossy. No file data is uploaded.</span></div>
 </section>
 <div class="steps">
 <div class="step"><span class="number">01</span><b>Upload your paper</b><p>Select a printable PaperVoice PDF or take photos of each QR.</p></div>
 <div class="step"><span class="number">02</span><b>Rebuild the recording</b><p>The browser scans the codes, checks the data, and decodes the speech.</p></div>
 <div class="step"><span class="number">03</span><b>Play and save</b><p>Listen to the recovered voice and download an MP3 to your phone.</p></div>
 </div>
-<footer>PaperVoice v1 · Browser-only, hosted via Cloudflare · Create: Tiny Codec 2 · Decode: Tiny Codec 2 and Clear Ogg/Opus · <a href="https://github.com/123abcooooooooo/PaperVoice-Website">View source code</a><p>The page needs a connection to download its software libraries, but your voice messages are never transmitted to them. This is a personal project, not a commercial service.</p></footer>
+<footer>PaperVoice v2 · Browser-only, hosted via Cloudflare · Exact file mode (bit-perfect) and legacy Codec 2 · <a href="https://github.com/123abcooooooooo/PaperVoice-Website">View source code</a><p>The page needs a connection to download its software libraries, but your voice messages are never transmitted to them. This is a personal project, not a commercial service.</p></footer>
 </main>
 <script>
 window.addEventListener("DOMContentLoaded", () => {
