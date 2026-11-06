@@ -9,7 +9,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check browser JavaScript syntax
-        run: node --check docs/app.js
+        run: |
+          node --check docs/app.js
+          node --check docs/create.js
+          node --check docs/tabs.js
       - name: Confirm GitHub Pages files exist
         run: |
           test -f docs/index.html
