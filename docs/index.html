@@ -20,6 +20,36 @@ header{text-align:center;margin:70px auto 32px}header small{font-weight:700;colo
 .output{border:1px solid #50877e;background:#1c3b3b;border-radius:16px;padding:19px;margin-top:18px}.output[hidden]{display:none}.output h3{margin:0 0 8px}.output p{color:#c2ded9;margin:0 0 14px;font-size:13px}.output audio{display:block;width:100%;margin:15px 0}.download{display:inline-block;text-decoration:none;border-radius:10px;background:var(--mint);color:#103131;padding:11px 18px;font-weight:800}
 .steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:23px 0}.step{padding:19px;background:#192439;border:1px solid #35435e;border-radius:16px}.step b{font-size:14px}.step p{font-size:13px;color:var(--muted);margin:6px 0 0}.number{display:block;color:var(--lav);font-weight:800;margin-bottom:9px}
 footer{font-size:12px;color:var(--muted);border-top:1px solid #36445f;padding-top:19px;margin-top:21px}footer a{color:var(--mint)}.privacy{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#c1d4db;margin-top:15px}
+
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px;background:#111e33;border:1px solid #354b68;padding:6px;border-radius:17px;margin:0 0 18px}
+.tabs button{background:transparent;color:#a8bdd3;border:0;padding:13px 6px;border-radius:12px;font-size:15px;font-weight:750}
+.tabs button[aria-selected="true"]{background:linear-gradient(105deg,#b7bdff,#75e1d1);color:#101b2d}
+.tabs button:focus-visible{outline:3px solid #72e6ce;outline-offset:2px}
+[hidden]{display:none !important}
+.upload-label{display:block;font-size:13px;font-weight:750;color:#d6e5f5;margin-bottom:8px}
+.uploader{background:#122038;border:2px dashed #60728f;padding:20px;border-radius:16px;display:block;text-align:center;cursor:pointer}
+.uploader input{display:block;max-width:100%;font-size:14px;color:#dbe9f8;margin:9px auto}
+.uploader span{display:block;font-size:12px;color:#b6c7d9}
+.record-box{background:#16263e;border:1px solid #405778;border-radius:15px;padding:18px;margin:17px 0}
+.record-box h3{font-size:16px;margin:0 0 7px}
+.record-box p{font-size:13px;color:var(--muted);margin:0 0 13px}
+.record-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mic-btn{background:#e58da0;border:0;color:#111b2b;font-weight:800;border-radius:10px;padding:11px 17px}
+.stop-btn{background:#374965;border:1px solid #6c86a2;color:#fff;font-weight:750;border-radius:10px;padding:10px 16px}
+.record-actions button:disabled{opacity:.45;cursor:not-allowed}
+#record-timer{font-variant-numeric:tabular-nums;color:#91e5d7;font-weight:800}
+#source-preview{width:100%;margin:11px 0}
+#source-info{color:var(--muted);font-size:12px;overflow-wrap:anywhere;margin-top:8px}
+.create-controls{margin-top:18px;display:flex;gap:9px;flex-wrap:wrap}
+.create-controls .primary{flex:1;min-width:220px}
+#download-sheet{background:var(--mint);color:#0c2730;border:0;padding:12px 18px;font-weight:800;border-radius:10px}
+#download-sheet:disabled{opacity:.4}
+#qr-summary{font-size:13px;color:#d0e9e0;line-height:1.6}
+.qr-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+.qr-item{min-width:0;background:#fff;border-radius:10px;padding:12px;margin:0;text-align:center;color:#1a2333}
+.qr-item canvas{display:block;width:100%;max-width:225px;height:auto;margin:auto;image-rendering:pixelated}
+.qr-item figcaption{font-size:12px;font-weight:700;margin-top:8px}
+#source-audio{font-size:14px}
 @media(max-width:600px){main{padding:19px 14px 42px}header{margin:51px auto 28px}.panel{padding:16px}.drop{min-height:210px}.steps{grid-template-columns:1fr}.controls{flex-direction:column}}
 </style>
 <script defer src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.11.0/dist/index.js"></script>
@@ -27,13 +57,23 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid #36445f;padding-to
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/gh/rameshvarun/codec2-emscripten@main/build/c2dec.js"></script>
+<script defer src="https://cdn.jsdelivr.net/gh/rameshvarun/codec2-emscripten@main/build/c2enc.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 <script defer src="./app.js"></script>
+<script defer src="./create.js"></script>
+<script defer src="./tabs.js"></script>
 </head>
 <body>
 <main>
 <nav><strong>◉ PaperVoice</strong><span>◎ 100% in your browser</span></nav>
-<header><small>Sound inside paper</small><h1>Turn paper back<br>into <em>sound.</em></h1><p>Upload PaperVoice QR codes from a printed page, reconstruct the recording privately, and download an MP3.</p></header>
-<section class="panel">
+<header><small>Sound inside paper</small><h1>Turn paper back<br>into <em>sound.</em></h1><p>Record or upload a voice message to print on paper. Scan the QR codes later to hear it again.</p></header>
+
+<div class="tabs" role="tablist" aria-label="PaperVoice tools">
+  <button id="tab-decode" role="tab" type="button" aria-selected="true" aria-controls="decode-panel">▦ Decode paper</button>
+  <button id="tab-create" role="tab" type="button" aria-selected="false" aria-controls="create-panel" tabindex="-1">● Create QR message</button>
+</div>
+<section class="panel" id="decode-panel" role="tabpanel" aria-labelledby="tab-decode">
 <h2>Your voice, recovered.</h2>
 <p class="small">Choose the original PDF, a page photo, or individual close-up pictures of all its QR codes.</p>
 <div id="drop" class="drop" tabindex="0" role="button" aria-label="Select QR photos or PDF">
@@ -52,14 +92,48 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid #36445f;padding-to
 <audio id="audio" controls preload="metadata"></audio>
 <a id="download" class="download">↓ Download MP3</a>
 </div>
-<div class="privacy"><span>🔒</span><span>Your voice recordings and photos stay on your device. No accounts, audio uploads, server processing or billing. Third-party decoding libraries are downloaded when you open this page.</span></div>
+<div class="privacy"><span>🔒</span><span>Your voice recordings and photos stay on your device. No media uploads, server audio processing, or usage-based conversion fees. Cloudflare Access handles website sign-in. Browser libraries are downloaded when opening this page.</span></div>
+</section>
+<section class="panel" id="create-panel" role="tabpanel" aria-labelledby="tab-create" hidden>
+  <h2>Put your voice on paper.</h2>
+  <p class="small">Record a message or upload audio. PaperVoice compresses your voice and stores the actual recording across printable QR codes.</p>
+  <label class="upload-label" for="source-audio">Choose a recording</label>
+  <div class="uploader">
+    <input id="source-audio" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.opus,.webm">
+    <span>MP3, M4A, WAV and other formats supported by your browser. Maximum 90 seconds.</span>
+  </div>
+  <div class="record-box">
+    <h3>Or record right here</h3>
+    <p>Use your phone or computer microphone. The browser may ask permission the first time.</p>
+    <div class="record-actions">
+      <button class="mic-btn" type="button" id="record-start">● Start recording</button>
+      <button class="stop-btn" type="button" id="record-stop" disabled>■ Stop</button>
+      <span id="record-timer" aria-live="polite">0:00</span>
+    </div>
+  </div>
+  <div id="source-info" aria-live="polite"></div>
+  <audio id="source-preview" controls preload="metadata" hidden></audio>
+  <div class="create-controls">
+    <button id="make-qr" class="primary" type="button" disabled>Create QR codes</button>
+    <button id="discard-audio" class="secondary" type="button" hidden>Clear audio</button>
+  </div>
+  <div id="create-status" class="status" role="status" aria-live="polite"></div>
+  <div id="create-progress" class="progress" aria-live="polite"></div>
+  <div id="create-preview" class="output" hidden>
+    <h3>✓ QR voice message created!</h3>
+    <p id="qr-summary"></p>
+    <button id="download-sheet" type="button">↓ Download printable PDF</button>
+    <p style="margin-top:13px">Each code contains part of your recording. Print or share every page, and scan them with the <strong>Decode paper</strong> tab.</p>
+    <div id="qr-list" class="qr-grid" aria-label="Generated QR codes"></div>
+  </div>
+  <div class="privacy"><span>🔒</span><span>Your audio is processed locally, never uploaded to a server. Codec 2 is designed for speech; the recovered voice may sound robotic, especially for music. A 30-second recording typically needs several QR codes.</span></div>
 </section>
 <div class="steps">
 <div class="step"><span class="number">01</span><b>Upload your paper</b><p>Select a printable PaperVoice PDF or take photos of each QR.</p></div>
 <div class="step"><span class="number">02</span><b>Rebuild the recording</b><p>The browser scans the codes, checks the data, and decodes the speech.</p></div>
 <div class="step"><span class="number">03</span><b>Play and save</b><p>Listen to the recovered voice and download an MP3 to your phone.</p></div>
 </div>
-<footer>PaperVoice v1 · Static GitHub Pages project · Tiny (Codec 2) and Clear (Ogg Opus) recording formats · <a href="https://github.com/123abcooooooooo/PaperVoice-Website">View source code</a><p>The page needs a connection to download its software libraries, but your voice messages are never transmitted to them. This is a personal project, not a commercial service.</p></footer>
+<footer>PaperVoice v1 · Browser-only, hosted via Cloudflare · Create: Tiny Codec 2 · Decode: Tiny Codec 2 and Clear Ogg/Opus · <a href="https://github.com/123abcooooooooo/PaperVoice-Website">View source code</a><p>The page needs a connection to download its software libraries, but your voice messages are never transmitted to them. This is a personal project, not a commercial service.</p></footer>
 </main>
 <script>
 window.addEventListener("DOMContentLoaded", () => {
