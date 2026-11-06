@@ -1,0 +1,34 @@
+name: Test PaperVoice PDF to MP3 in browser
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  browser-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install QR fixture and browser test requirements
+        run: |
+          python -m pip install -U pip
+          python -m pip install playwright "qrcode[pil]" reportlab
+          python -m playwright install --with-deps chromium
+      - name: Generate four-code dense PaperVoice test PDF
+        run: python tests/generate_fixture.py tests/test_sheet.pdf
+      - name: Start local static website
+        run: |
+          python -m http.server 8000 --directory docs >/tmp/papervoice-http.log 2>&1 &
+          sleep 2
+      - name: Exercise upload, QR scan, Codec2 decode and MP3 export
+        run: python tests/test_browser.py
+      - name: Upload screenshot on test failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-voice-browser-failure
+          path: tests/browser_failure.png
+          if-no-files-found: ignore
