@@ -151,15 +151,26 @@
 
   // ZXing reads one QR at a time. For full-page PDFs we crop into overlapping
   // cells so all 2x3 codes can be decoded without a server or camera permissions.
+
+  // The original four very dense v25 QR codes are far more reliable in ZBar's
+  // WebAssembly reader than in ZXing. ZBar can also find several codes per image.
+  async function scanWithZbar(canvas) {
+    if (!window.zbarWasm?.scanImageData) return [];
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    const picture = context.getImageData(0, 0, canvas.width, canvas.height);
+    const results = await window.zbarWasm.scanImageData(picture);
+    return results.map(result => result.decode()).filter(text => text.startsWith("PV1:"));
+  }
+
   function tryZxing(canvas) {
     if (!window.ZXing) return null;
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const source = new ZXing.RGBLuminanceSource(image.data, canvas.width, canvas.height);
-    const bitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(source));
-    const hints = new Map();
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
     try {
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const source = new ZXing.RGBLuminanceSource(image.data, canvas.width, canvas.height);
+      const bitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(source));
+      const hints = new Map();
+      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
       return new ZXing.QRCodeReader().decode(bitmap, hints).getText();
     } catch (_) {
       return null;
@@ -167,34 +178,45 @@
   }
 
   function crop(source, x, y, w, h) {
-    const c = document.createElement("canvas");
-    c.width = Math.ceil(source.width * w);
-    c.height = Math.ceil(source.height * h);
-    c.getContext("2d", { willReadFrequently: true }).drawImage(
-      source, Math.floor(source.width * x), Math.floor(source.height * y),
-      Math.ceil(source.width * w), Math.ceil(source.height * h),
-      0, 0, c.width, c.height
-    );
-    return c;
+    const canvas = document.createElement("canvas");
+    const px = Math.floor(source.width * x), py = Math.floor(source.height * y);
+    const pw = Math.min(source.width - px, Math.ceil(source.width * w));
+    const ph = Math.min(source.height - py, Math.ceil(source.height * h));
+    canvas.width = pw; canvas.height = ph;
+    canvas.getContext("2d", { willReadFrequently: true })
+      .drawImage(source, px, py, pw, ph, 0, 0, pw, ph);
+    return canvas;
   }
 
   async function readCanvas(canvas) {
     const seen = new Set();
+    const add = text => { if (text?.startsWith("PV1:")) seen.add(text); };
     if ("BarcodeDetector" in window) {
       try {
         const detector = new BarcodeDetector({formats: ["qr_code"]});
-        for (const result of await detector.detect(canvas))
-          if (result.rawValue?.startsWith("PV1:")) seen.add(result.rawValue);
-      } catch (_) { /* fallback below */ }
+        for (const result of await detector.detect(canvas)) add(result.rawValue);
+      } catch (_) {}
     }
-    const full = tryZxing(canvas);
-    if (full?.startsWith("PV1:")) seen.add(full);
-    // Overlapping regions support the original PaperVoice 2-column / 3-row page.
-    const columns = [[0, .54], [.46, .54]];
-    const rows = [[0, .40], [.28, .44], [.60, .40]];
-    for (const [y, h] of rows) for (const [x, w] of columns) {
-      const code = tryZxing(crop(canvas, x, y, w, h));
-      if (code?.startsWith("PV1:")) seen.add(code);
+    try {
+      for (const code of await scanWithZbar(canvas)) add(code);
+    } catch (error) { console.warn("ZBar whole-image scan:", error); }
+    add(tryZxing(canvas));
+
+    // Crop with generous margins. The PDF has rows of dense QR codes; partial
+    // crops that cut off a finder square cannot decode reliably.
+    const boxes = [
+      [0, 0, .55, .53], [.45, 0, .55, .53],
+      [0, .37, .55, .49], [.45, .37, .55, .49],
+      [0, .52, .55, .48], [.45, .52, .55, .48]
+    ];
+    for (let i = 0; i < boxes.length; i++) {
+      const region = crop(canvas, ...boxes[i]);
+      try {
+        for (const code of await scanWithZbar(region)) add(code);
+        add(tryZxing(region));
+      } catch (error) { console.warn("QR crop scan:", error); }
+      region.width = region.height = 0;
+      if (i % 2 === 1) await yieldUI();
     }
     return [...seen];
   }
@@ -227,7 +249,7 @@
           await yieldUI();
           const page = await pdf.getPage(i);
           const dimensions = page.getViewport({ scale: 1 });
-          const scale = Math.min(2.9, 2400 / Math.max(dimensions.width, dimensions.height));
+          const scale = Math.min(2.0, 2400 / Math.max(dimensions.width, dimensions.height));
           const viewport = page.getViewport({scale});
           const canvas = document.createElement("canvas");
           canvas.width = Math.round(viewport.width);
