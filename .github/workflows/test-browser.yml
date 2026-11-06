@@ -17,6 +17,8 @@ jobs:
           python -m pip install -U pip
           python -m pip install playwright "qrcode[pil]" reportlab
           python -m playwright install --with-deps chromium
+      - name: Install FFmpeg for sample codec generation
+        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
       - name: Generate four-code dense PaperVoice test PDF
         run: python tests/generate_fixture.py tests/test_sheet.pdf
       - name: Start local static website
