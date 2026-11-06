@@ -27,10 +27,14 @@ jobs:
           sleep 2
       - name: Exercise upload, QR scan, Codec2 decode and MP3 export
         run: python tests/test_browser.py
+      - name: Verify newly generated QR sheet can be restored as MP3
+        run: python tests/test_create.py
       - name: Upload screenshot on test failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: paper-voice-browser-failure
-          path: tests/browser_failure.png
+          path: |
+            tests/browser_failure.png
+            tests/create_browser_failure.png
           if-no-files-found: ignore
