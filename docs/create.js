@@ -4,8 +4,9 @@
   const input = $("source-audio"), micStart = $("record-start"), micStop = $("record-stop");
   const convert = $("make-qr"), report = $("create-status"), busy = $("create-progress");
   const preview = $("create-preview"), sourcePlayer = $("source-preview"), sourceInfo = $("source-info");
-  const pdfButton = $("download-sheet"), clearButton = $("discard-audio");
+  const pdfButton = $("download-sheet"), clearButton = $("discard-audio"), modeInput = $("encoding-mode"), estimate = $("exact-estimate");
   const MAX_SECONDS = 90, MAX_BYTES = 28 * 1024 * 1024, CHUNK_BYTES = 850, MAX_CODES = 60;
+  const EXACT_CODES_PER_PAGE = 12, MAX_EXACT_CODES = 480;
   const BASE45 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
   const C2_HEADER = Uint8Array.from([0xC0,0xDE,0xC2,0x00,0x08,0x04,0x00]);
   let mediaRecorder = null, activeStream = null, segments = [];
@@ -20,11 +21,12 @@
   }
 
   function updateButtons() {
-    convert.disabled = !audioFile || making || recording;
+    convert.disabled = !audioFile || making || recording || (modeInput.value === "exact" && (1+Math.ceil(audioFile.size/CHUNK_BYTES) > MAX_EXACT_CODES));
     micStart.disabled = recording || making;
     micStop.disabled = !recording;
     clearButton.hidden = !audioFile || recording;
     input.disabled = recording || making;
+    modeInput.disabled = recording || making;
   }
 
   function revokePreview() {
@@ -58,8 +60,65 @@
     sourcePlayer.src = fileURL;
     sourceInfo.textContent = file.name + " · " + (file.size / 1048576).toFixed(1) + " MB";
     sourcePlayer.hidden = false;
-    stateMessage("Ready. Create a printable QR message from your recording.");
+    showEstimate();
+    stateMessage("Ready. Select your preferred encoding quality and create the QR sheet.");
     updateButtons();
+  }
+
+
+  function showEstimate() {
+    if (!audioFile) { estimate.textContent=""; return; }
+    if (modeInput.value !== "exact") {
+      estimate.textContent="Ultra-small speech mode reduces the recording with lossy Codec 2 compression. It will NOT sound like the original.";
+      return;
+    }
+    const codeCount = 1 + Math.ceil(audioFile.size / CHUNK_BYTES);
+    const pages = Math.ceil(codeCount / EXACT_CODES_PER_PAGE);
+    estimate.textContent = "Bit-perfect original file • " + audioFile.size.toLocaleString() +
+      " bytes • " + codeCount.toLocaleString() + " QR codes • about " +
+      pages.toLocaleString() + " printed page(s)." +
+      (codeCount > MAX_EXACT_CODES ? " This exceeds the current 40-page browser limit. The original file is too large for exact offline printing here." :
+      pages > 10 ? " This is a lot of paper; every page is needed to recover the audio." : "");
+    convert.disabled = codeCount > MAX_EXACT_CODES || making || recording;
+  }
+  modeInput.addEventListener("change", () => {
+    resetQr();
+    if (audioFile) { showEstimate(); stateMessage(""); }
+    updateButtons();
+    if (audioFile && modeInput.value === "exact") showEstimate();
+  });
+
+  async function exactQRs(file) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const chunks = Math.ceil(bytes.length / CHUNK_BYTES);
+    if (chunks + 1 > MAX_EXACT_CODES)
+      throw Error("Exact original requires " + Math.ceil((chunks+1)/EXACT_CODES_PER_PAGE) +
+        " pages. This website currently supports up to 40 pages per exact recording.");
+    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+    const sha = Array.from(digest, n => n.toString(16).padStart(2, "0")).join("").toUpperCase();
+    const id = sha.slice(0,12);
+    const meta = { name:file.name.slice(0,120), mime:file.type||"application/octet-stream",
+      size:file.size, sha256:sha };
+    const manifest = new TextEncoder().encode(JSON.stringify(meta));
+    const countText = String(chunks).padStart(4,"0");
+    const qrCodes = [];
+    function add(index,mode,payload){
+      const data = "PV2:"+mode+":"+id+":"+
+        String(index).padStart(4,"0")+":"+countText+":"+base45encode(payload);
+      const qr = qrcode(0,"M");
+      qr.addData(data,"Alphanumeric");
+      qr.make();
+      qrCodes.push(qr);
+    }
+    add(0,"M",manifest);
+    for (let i=0;i<chunks;i++) {
+      add(i+1,"F",bytes.slice(i*CHUNK_BYTES,(i+1)*CHUNK_BYTES));
+      if (i%8===7){
+        busy.textContent = "Writing exact audio: "+(i+1)+"/"+chunks+" data codes";
+        await sleep();
+      }
+    }
+    return {id,codes:qrCodes,mode:"exact",size:bytes.length,filename:file.name};
   }
 
   input.addEventListener("change", () => {
@@ -68,7 +127,7 @@
   });
   clearButton.addEventListener("click", () => {
     audioFile = null; input.value = ""; revokePreview(); resetQr();
-    sourcePlayer.hidden = true; sourceInfo.textContent = ""; stateMessage(""); updateButtons();
+    sourcePlayer.hidden = true; sourceInfo.textContent = ""; estimate.textContent = ""; stateMessage(""); updateButtons();
   });
 
   function stopTracks() {
@@ -224,7 +283,7 @@
         await sleep();
       }
     }
-    return {id, codes:result};
+    return {id, codes:result, mode:"tiny", size:bytes.length};
   }
 
   function renderCanvas(qr,scale=4) {
@@ -245,40 +304,38 @@
       return;
     }
     try {
-      const pdf=new window.jspdf.jsPDF({unit:"pt",format:"letter",compress:true});
-      const count=sheets.codes.length;
-      const totalPages=Math.ceil(count/4);
-      // 2 x 2 per US Letter page with full 4-module quiet zones.
-      for(let page=0;page<totalPages;page++) {
-        if(page) pdf.addPage();
+      const exact = sheets.mode === "exact";
+      const perPage = exact ? EXACT_CODES_PER_PAGE : 4;
+      const pdf = new window.jspdf.jsPDF({unit:"pt",format:"letter",compress:true});
+      const count=sheets.codes.length, totalPages=Math.ceil(count/perPage);
+      for(let page=0;page<totalPages;page++){
+        if(page)pdf.addPage();
         pdf.setFont("helvetica","bold");pdf.setFontSize(17);
-        pdf.text("PAPERVOICE",42,39);
-        pdf.setFont("helvetica","normal");pdf.setFontSize(10);
-        pdf.text("Scan all QR codes to hear this printed recording.",42,56);
-        pdf.text("ID: "+sheets.id+" | Page "+(page+1)+" of "+totalPages,42,72);
-        for(let slot=0;slot<4;slot++) {
-          const index=page*4+slot;
+        pdf.text("PAPERVOICE",26,32);
+        pdf.setFont("helvetica","normal");pdf.setFontSize(9);
+        pdf.text(exact?"EXACT ORIGINAL - bit-for-bit audio data":"Tiny Codec 2 - compressed speech",26,48);
+        pdf.text("ID: "+sheets.id+" | Page "+(page+1)+"/"+totalPages,26,63);
+        for(let slot=0;slot<perPage;slot++){
+          const index=page*perPage+slot;
           if(index>=count)break;
           const qr=sheets.codes[index];
-          const box=238, x=slot%2===0?37:337, y=slot<2?92:421;
-          // Embed a lossless, high-resolution QR bitmap including the full
-          // four-module quiet zone. This is more reliable to scan after
-          // PDF rendering/printing than many adjacent vector rectangles.
-          const picture=renderCanvas(qr,8);
-          pdf.addImage(picture.toDataURL("image/png"),"PNG",x,y,box,box);
-          picture.width=picture.height=0;
-          pdf.setFontSize(10);pdf.setTextColor(30);
-          pdf.text("QR "+(index+1)+" / "+count,x+box/2,y+box+17,{align:"center"});
+          const box=exact?154:238;
+          const x=exact?([26,229,432][slot%3]):(slot%2===0?37:337);
+          const y=exact?([83,249,415,581][Math.floor(slot/3)]):(slot<2?92:421);
+          const image=renderCanvas(qr,exact?6:8);
+          pdf.addImage(image.toDataURL("image/png"),"PNG",x,y,box,box);
+          image.width=image.height=0;
+          pdf.setFontSize(exact?8:10);pdf.setTextColor(30);
+          pdf.text("QR "+(index+1)+" / "+count,x+box/2,y+box+13,{align:"center"});
         }
-        pdf.setTextColor(95);pdf.setFontSize(9);
-        pdf.text("Voice data is stored in these codes (not an internet link). Keep every page.",
-          42,770);
+        pdf.setTextColor(95);pdf.setFontSize(8);
+        pdf.text(exact?"Every QR is required. Audio file bytes are stored exactly as supplied.":"Every QR is required. Audio is stored in these codes, not on a server.",26,777);
         pdf.setTextColor(0);
       }
       pdf.save("PaperVoice_"+sheets.id+".pdf");
-    } catch(error) {
+    } catch(error){
       console.error(error);
-      stateMessage("Could not save the PDF on this browser. Try Safari's Share or a computer.",true);
+      stateMessage("Could not save the PDF on this device. Try a shorter recording or a desktop browser.",true);
     }
   }
 
@@ -288,18 +345,26 @@
     if(!audioFile || making || recording)return;
     making=true;updateButtons();resetQr();stateMessage("");
     try {
-      busy.textContent="Reading audio…";
-      await sleep();
-      const {pcm,duration}=await readPCM(audioFile);
-      busy.textContent="Compressing speech with Codec 2…";
-      await sleep();
-      const data=await codec2Encode(pcm);
-      busy.textContent="Encoding the compressed audio into QR codes…";
-      await sleep();
-      sheets=await toQRSheets(data);
+      if(modeInput.value === "exact") {
+        busy.textContent="Preserving the original file bytes exactly…";
+        await sleep();
+        sheets=await exactQRs(audioFile);
+      } else {
+        busy.textContent="Reading audio…";
+        await sleep();
+        const {pcm,duration}=await readPCM(audioFile);
+        busy.textContent="Compressing speech with Codec 2 (lossy)…";
+        await sleep();
+        const data=await codec2Encode(pcm);
+        busy.textContent="Generating tiny speech QR codes…";
+        await sleep();
+        sheets=await toQRSheets(data);
+        sheets.duration=duration;
+      }
       const entries=$("qr-list");
       entries.replaceChildren();
-      for(let i=0;i<sheets.codes.length;i++) {
+      const visible = Math.min(sheets.codes.length, 12);
+      for(let i=0;i<visible;i++) {
         const item=document.createElement("figure");
         item.className="qr-item";
         const canvas=renderCanvas(sheets.codes[i],3);
@@ -308,12 +373,24 @@
         item.append(canvas,label);
         entries.append(item);
       }
-      $("qr-summary").textContent=duration.toFixed(1)+" seconds • "+
-        data.length.toLocaleString()+" compressed bytes • "+sheets.codes.length+
-        " QR codes • "+Math.ceil(sheets.codes.length/4)+" printable page(s)";
+      const count=sheets.codes.length;
+      const pages=Math.ceil(count/(sheets.mode==="exact"?EXACT_CODES_PER_PAGE:4));
+      $("qr-summary").textContent=sheets.mode==="exact"
+        ? "BIT-PERFECT • "+sheets.filename+" • "+sheets.size.toLocaleString()+
+          " bytes • "+count+" QR codes • "+pages+" printed page(s) • SHA-256 checked on recovery."
+        : sheets.duration.toFixed(1)+" seconds • "+sheets.size.toLocaleString()+
+          " bytes (lossy Codec 2) • "+count+" QR codes • "+pages+" page(s).";
+      if(count>visible){
+        const text=document.createElement("p");
+        text.textContent="Showing the first "+visible+" QR codes only; all "+count+
+          " will be included in the PDF.";
+        entries.append(text);
+      }
       preview.hidden=false;
       pdfButton.disabled=false;
-      stateMessage("Ready! Your voice is encoded inside the QR patterns. Download the PDF to print or share.");
+      stateMessage(sheets.mode === "exact"
+        ? "Success: the original audio file was encoded with ZERO re-encoding or quality loss. All printed pages are required."
+        : "Ready: QR sheet created using lossy Codec 2 compression.");
     } catch(error) {
       console.error(error);
       stateMessage(error?.message||"Audio encoding failed.",true);
