@@ -2,7 +2,7 @@
 
 The static website is at https://123abcooooooooo.github.io/PaperVoice-Website/ (after GitHub Pages is enabled).
 
-The website reads PaperVoice v1 QR-code photos/PDFs and reconstructs the recording into a downloadable MP3 entirely inside the browser. There is no server, user account, audio upload, or usage-based hosting bill.
+The website creates printed PaperVoice v1 QR codes from recorded or uploaded audio and reconstructs QR photos/PDFs into downloadable MP3s entirely inside the browser. There is no server, user account, audio upload, or usage-based hosting bill.
 
 ## Publish for free — one-time setup
 
@@ -12,6 +12,17 @@ The website reads PaperVoice v1 QR-code photos/PDFs and reconstructs the recordi
 4. After the Pages deployment succeeds, open https://123abcooooooooo.github.io/PaperVoice-Website/
 
 The original FastAPI and Docker files are legacy: GitHub Pages only serves the static website inside the docs folder.
+
+## Create a QR voice message (new)
+
+Open the hosted PaperVoice website and select **Create QR message**.
+
+1. Tap **Start recording** (allow microphone access), speak and stop, **or** select a local audio file (MP3, M4A, WAV, or another browser-supported audio format).
+2. Tap **Create QR codes**. The browser downmixes audio to mono 8 kHz, compresses it with Codec 2 mode 1300, and encodes the bytes as Base45 across a numbered set of QR codes in the original PV1:T format.
+3. Select **Download printable PDF**. All QR codes must be kept together for playback. PaperVoice arranges four codes per US Letter page.
+4. To recover the message, select **Decode paper**, upload the printed-page PDF or scans, and download the MP3.
+
+The feature supports recordings up to **90 seconds**; shorter recordings use fewer QR codes and scan more reliably. **Speech compression is lossy and can sound robotic; it is not suitable for high-fidelity music.** No audio files or recordings are sent to a backend service. The libraries are loaded over HTTPS into the browser.
 
 ## Usage
 
