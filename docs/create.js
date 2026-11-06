@@ -259,21 +259,14 @@
         for(let slot=0;slot<4;slot++) {
           const index=page*4+slot;
           if(index>=count)break;
-          const qr=sheets.codes[index], cells=qr.getModuleCount(),quiet=4;
+          const qr=sheets.codes[index];
           const box=238, x=slot%2===0?37:337, y=slot<2?92:421;
-          const pitch=box/(cells+quiet*2);
-          // Draw crisp vector squares so printing is resolution-independent.
-          pdf.setFillColor(255,255,255);pdf.rect(x,y,box,box,"F");
-          pdf.setFillColor(0,0,0);
-          for(let row=0;row<cells;row++) {
-            for(let col=0;col<cells;) {
-              if(!qr.isDark(row,col)) {col++;continue;}
-              let stop=col+1;
-              while(stop<cells&&qr.isDark(row,stop))stop++;
-              pdf.rect(x+(col+quiet)*pitch,y+(row+quiet)*pitch,(stop-col)*pitch+.006,pitch+.006,"F");
-              col=stop;
-            }
-          }
+          // Embed a lossless, high-resolution QR bitmap including the full
+          // four-module quiet zone. This is more reliable to scan after
+          // PDF rendering/printing than many adjacent vector rectangles.
+          const picture=renderCanvas(qr,8);
+          pdf.addImage(picture.toDataURL("image/png"),"PNG",x,y,box,box);
+          picture.width=picture.height=0;
           pdf.setFontSize(10);pdf.setTextColor(30);
           pdf.text("QR "+(index+1)+" / "+count,x+box/2,y+box+17,{align:"center"});
         }
