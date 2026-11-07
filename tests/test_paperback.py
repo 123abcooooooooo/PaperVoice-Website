@@ -75,6 +75,7 @@ async def main():
                       anchor.download="paperback_preview.png";anchor.click();
                     }""")
                 await (await shot.value).save_as(str(image))
+                await page.locator("#clear-scans").click()
                 await page.locator("#scan-files").set_input_files(str(image))
                 await page.locator("#decode-button").click()
                 await page.locator("#decode-result").wait_for(state="visible",timeout=120000)
