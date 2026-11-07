@@ -3,150 +3,126 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#101727">
-<meta name="description" content="Print an original audio file losslessly as QR codes, or recover one by scanning. Local browser processing.">
-<title>PaperVoice — Voice from paper</title>
+<meta name="theme-color" content="#0d1525">
+<meta name="description" content="PaperVoice home: choose Classic QR Audio, PaperBack Lab, or SHEET/7 Research. Turn voice recordings into printable paper and restore the original audio.">
+<title>PaperVoice — Your paper audio projects</title>
 <style>
-:root{color-scheme:dark;--base:#0f1424;--ink:#f5f7fc;--muted:#abb9d0;--card:#1c2941;--border:#3b4d68;--mint:#72e6ce;--lav:#b8b9ff}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse 90% 45% at 50% -10%,#3a4a73 0%,transparent 83%),var(--base);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;color:var(--ink);min-height:100vh}
-main{max-width:780px;padding:24px 20px 65px;margin:auto}nav{display:flex;justify-content:space-between;align-items:center;gap:12px}nav strong{font-size:21px;letter-spacing:-.6px}nav span{display:inline-flex;gap:6px;align-items:center;font-size:11px;color:var(--mint);font-weight:750;border:1px solid #4d807d;padding:6px 9px;border-radius:100px}
-header{text-align:center;margin:70px auto 32px}header small{font-weight:700;color:var(--mint);font-size:12px;letter-spacing:2.5px;text-transform:uppercase}h1{font-size:clamp(38px,8vw,68px);letter-spacing:-.066em;line-height:1.08;margin:17px 0}h1 em{font-style:normal;color:var(--lav)}header p{font-size:16px;color:var(--muted);max-width:540px;margin:auto}
-.panel{padding:27px;background:linear-gradient(140deg,#253451,#17243b);border-radius:24px;border:1px solid var(--border);box-shadow:0 20px 65px #0004}h2{font-size:21px;letter-spacing:-.5px;margin:0 0 3px}.small{font-size:14px;color:var(--muted);margin:0 0 22px}
-.drop{border:2px dashed #647797;background:#131e34;min-height:223px;padding:24px;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-align:center;cursor:pointer}.drop.dragging,.drop:hover{border-color:var(--mint);background:#1b3049}.drop:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--mint);outline-offset:2px}.illustration{font-size:50px;line-height:1;color:var(--mint);margin-bottom:12px}.drop b{font-size:17px}.drop span{color:var(--muted);font-size:13px}
-.note{text-align:center;color:#95a9c4;font-size:12px;margin:12px 0 17px}
-.file{display:flex;align-items:center;gap:12px;padding:10px 13px;border:1px solid #40516d;border-radius:12px;background:#293953;margin:8px 0}.filename{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:13px}.file small{color:var(--muted)}button{font:inherit;cursor:pointer}.remove{border:0;background:none;color:white;font-size:23px;line-height:1}
-.controls{display:flex;gap:10px;margin-top:20px}.primary{border:0;border-radius:12px;background:linear-gradient(100deg,#b3baff,#73e5cf);color:#0c1f2b;padding:13px 24px;font-weight:800;flex:1}.primary:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#33435f;color:white;border:1px solid #5a6a87;border-radius:12px;padding:12px 18px;font-weight:700}.secondary[hidden]{display:none}
-.status{margin-top:17px;color:var(--mint);font-size:14px;min-height:16px}.status.error{color:#ffb3ae}.progress{font-size:12px;color:var(--muted);min-height:20px}
-.output{border:1px solid #50877e;background:#1c3b3b;border-radius:16px;padding:19px;margin-top:18px}.output[hidden]{display:none}.output h3{margin:0 0 8px}.output p{color:#c2ded9;margin:0 0 14px;font-size:13px}.output audio{display:block;width:100%;margin:15px 0}.download{display:inline-block;text-decoration:none;border-radius:10px;background:var(--mint);color:#103131;padding:11px 18px;font-weight:800}
-.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:23px 0}.step{padding:19px;background:#192439;border:1px solid #35435e;border-radius:16px}.step b{font-size:14px}.step p{font-size:13px;color:var(--muted);margin:6px 0 0}.number{display:block;color:var(--lav);font-weight:800;margin-bottom:9px}
-footer{font-size:12px;color:var(--muted);border-top:1px solid #36445f;padding-top:19px;margin-top:21px}footer a{color:var(--mint)}.privacy{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#c1d4db;margin-top:15px}
-
-.tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px;background:#111e33;border:1px solid #354b68;padding:6px;border-radius:17px;margin:0 0 18px}
-.tabs button{background:transparent;color:#a8bdd3;border:0;padding:13px 6px;border-radius:12px;font-size:15px;font-weight:750}
-.tabs button[aria-selected="true"]{background:linear-gradient(105deg,#b7bdff,#75e1d1);color:#101b2d}
-.tabs button:focus-visible{outline:3px solid #72e6ce;outline-offset:2px}
-[hidden]{display:none !important}
-.upload-label{display:block;font-size:13px;font-weight:750;color:#d6e5f5;margin-bottom:8px}
-.uploader{background:#122038;border:2px dashed #60728f;padding:20px;border-radius:16px;display:block;text-align:center;cursor:pointer}
-.uploader input{display:block;max-width:100%;font-size:14px;color:#dbe9f8;margin:9px auto}
-.uploader span{display:block;font-size:12px;color:#b6c7d9}
-.record-box{background:#16263e;border:1px solid #405778;border-radius:15px;padding:18px;margin:17px 0}
-.record-box h3{font-size:16px;margin:0 0 7px}
-.record-box p{font-size:13px;color:var(--muted);margin:0 0 13px}
-.record-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.mic-btn{background:#e58da0;border:0;color:#111b2b;font-weight:800;border-radius:10px;padding:11px 17px}
-.stop-btn{background:#374965;border:1px solid #6c86a2;color:#fff;font-weight:750;border-radius:10px;padding:10px 16px}
-.record-actions button:disabled{opacity:.45;cursor:not-allowed}
-#record-timer{font-variant-numeric:tabular-nums;color:#91e5d7;font-weight:800}
-#source-preview{width:100%;margin:11px 0}
-#source-info{color:var(--muted);font-size:12px;overflow-wrap:anywhere;margin-top:8px}
-.create-controls{margin-top:18px;display:flex;gap:9px;flex-wrap:wrap}
-.create-controls .primary{flex:1;min-width:220px}
-#download-sheet{background:var(--mint);color:#0c2730;border:0;padding:12px 18px;font-weight:800;border-radius:10px}
-#download-sheet:disabled{opacity:.4}
-#qr-summary{font-size:13px;color:#d0e9e0;line-height:1.6}
-.qr-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
-.encoding-choice{width:100%;padding:14px 12px;background:#18263f;color:#fff;border:1px solid #617390;border-radius:12px;font-size:14px;margin-bottom:8px}
-.estimate{font-size:13px;color:#a6e6dc;line-height:1.5;margin:4px 0 16px}
-.qr-item{min-width:0;background:#fff;border-radius:10px;padding:12px;margin:0;text-align:center;color:#1a2333}
-.qr-item canvas{display:block;width:100%;max-width:225px;height:auto;margin:auto;image-rendering:pixelated}
-.qr-item figcaption{font-size:12px;font-weight:700;margin-top:8px}
-#source-audio{font-size:14px}
-@media(max-width:600px){main{padding:19px 14px 42px}header{margin:51px auto 28px}.panel{padding:16px}.drop{min-height:210px}.steps{grid-template-columns:1fr}.controls{flex-direction:column}}
+:root{color-scheme:dark;--bg:#0c1525;--ink:#f4f7ff;--muted:#b8c6d8;--line:#344561;--mint:#7cebd6;--violet:#bfc1ff;--amber:#efc58b}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:radial-gradient(ellipse 70% 25% at 50% -5%,#334668 0%,transparent 90%),var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;min-height:100vh}
+main{max-width:1070px;padding:26px 23px 60px;margin:auto}
+a{color:inherit}a:focus-visible{outline:3px solid #a5ffdb;outline-offset:4px;border-radius:7px}
+header{display:flex;justify-content:space-between;align-items:center;gap:14px}
+.logo{display:flex;gap:11px;align-items:center;text-decoration:none;font-size:22px;font-weight:820;letter-spacing:-.8px}
+.logomark{width:39px;height:39px;border-radius:12px;background:linear-gradient(135deg,#b6bfff,#73edce);display:grid;place-items:center;color:#111b35;font-size:27px}
+.top-label{color:#9bcbbf;border:1px solid #496f70;background:#162b34;border-radius:100px;padding:7px 11px;font-size:11px;letter-spacing:.7px;font-weight:750}
+.hero{padding:85px 0 51px;max-width:820px}
+.eyebrow{color:var(--mint);font-size:11px;letter-spacing:2.8px;font-weight:850}
+.hero h1{margin:18px 0 20px;font-size:clamp(49px,8.5vw,87px);line-height:1.07;font-weight:780;letter-spacing:-4px}
+.hero h1 em{font-style:normal;color:#b8c0ff}
+.hero p{color:var(--muted);font-size:18px;max-width:650px;margin:0}
+.section-title{display:flex;justify-content:space-between;align-items:end;gap:10px;margin-bottom:18px}
+.section-title h2{font-size:26px;letter-spacing:-.8px;margin:0}
+.section-title p{font-size:13px;color:#9babbe;margin:0}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px}
+.version{position:relative;display:flex;flex-direction:column;min-height:445px;padding:26px;border:1px solid #48617e;border-radius:23px;text-decoration:none;overflow:hidden;transition:transform .16s,border-color .16s,box-shadow .16s;background:linear-gradient(160deg,#1e3345,#17233b)}
+.version:hover{transform:translateY(-4px);border-color:#aac6dc;box-shadow:0 18px 35px #0004}
+.version.paperback{background:linear-gradient(155deg,#3a3b31,#242e2b);border-color:#736a51}
+.version.research{background:linear-gradient(156deg,#262f4b,#182239);border-color:#627e9c}
+.version .mini{font-size:11px;font-weight:850;letter-spacing:1.7px;color:#9dbce0}
+.version.paperback .mini{color:#dfba79}
+.version.research .mini{color:#cadf89}
+.status{display:inline-flex;align-items:center;gap:7px;width:max-content;margin-top:14px;padding:6px 10px;border-radius:100px;background:#254944;color:#b8f4dc;font-size:11px;font-weight:780}
+.status.test{background:#54442f;color:#ffe0ad}
+.status.research-tag{background:#3d4d38;color:#d8f2a2}
+.art{height:103px;display:flex;align-items:center;justify-content:center;margin:9px 0 7px;overflow:hidden}
+.art .qr{width:93px;height:93px;position:relative;background:#e4f2ef;display:grid;grid-template-columns:repeat(11,1fr);grid-template-rows:repeat(11,1fr);padding:7px;gap:2px;transform:rotate(-5deg);box-shadow:8px 8px 0 #0e1b2c}
+.qr i{background:#142b32}.qr i:nth-child(3n){opacity:.05}.qr i:nth-child(4n){background:#263e3e}.qr i:nth-child(7n){opacity:1}
+.art .dots{width:111px;height:87px;background-color:#faf2db;background-image:radial-gradient(#222c2c 31%,transparent 36%);background-size:5px 5px;transform:rotate(6deg);border:8px solid #e8dcc1;box-shadow:8px 8px 0 #1a251c}
+.art .sheet{width:106px;height:89px;background:#e5edda;border-radius:3px;position:relative;transform:rotate(-6deg);border:6px solid #d6e4d2;box-shadow:8px 8px 0 #101b2c;overflow:hidden}
+.sheet:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0px,transparent 3px,#1b2e37 4px,#1b2e37 5px),repeating-linear-gradient(90deg,#e3f1d9 0px,#e3f1d9 3px,#1c3740 4px,#1c3740 5px);mix-blend-mode:multiply}
+.version h3{font-size:28px;letter-spacing:-1px;margin:0 0 8px;line-height:1.15}
+.version p{font-size:14px;color:#c8d8df;margin:0 0 17px;min-height:86px}
+.version.paperback p{color:#d2d7cb}.version.research p{color:#cfdaeb}
+.details{display:flex;flex-direction:column;gap:7px;margin-top:auto;font-size:12px;color:#b4c8d9}
+.details span:before{content:"✓";display:inline-block;font-weight:800;margin-right:9px;color:#8ee2d6}
+.version.paperback .details span:before{color:#efd5a9}.version.research .details span:before{color:#e0eaa0}
+.launch{display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:850;color:#141d28;background:linear-gradient(90deg,#b4c6ff,#88ebd5);padding:13px 15px;border-radius:11px;margin-top:23px}
+.version.paperback .launch{background:linear-gradient(90deg,#e0c78e,#e9ad86)}
+.version.research .launch{background:linear-gradient(90deg,#d8e999,#96cdd8)}
+.help{display:flex;gap:14px;align-items:start;border:1px solid #384e65;background:#152338;border-radius:17px;margin-top:31px;padding:19px}
+.help .symbol{flex:none;display:grid;place-items:center;width:37px;height:37px;border-radius:10px;background:#354766;color:#d5f0a3;font-size:22px}
+.help b{font-size:14px}.help p{font-size:13px;color:#bacbda;margin:5px 0 0}
+footer{margin-top:42px;padding-top:18px;border-top:1px solid #3c4b64;display:flex;justify-content:space-between;flex-wrap:wrap;gap:9px;color:#9daec2;font-size:12px}
+footer a{color:#b1cfec;text-decoration:underline}
+@media(max-width:830px){.grid{grid-template-columns:1fr}.version{min-height:0}.version p{min-height:0}.art{height:115px}.section-title{align-items:start;flex-direction:column;gap:3px}}
+@media(max-width:560px){main{padding:19px 16px 40px}.hero{padding:60px 0 38px}.hero h1{letter-spacing:-2.8px}.hero p{font-size:15px}.version{padding:22px}.top-label{font-size:10px}.section-title h2{font-size:24px}}
+@media(prefers-reduced-motion:reduce){.version{transition:none}.version:hover{transform:none}html{scroll-behavior:auto}}
 </style>
-<script defer src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.11.0/dist/index.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/gh/rameshvarun/codec2-emscripten@main/build/c2dec.js"></script>
-<script defer src="https://cdn.jsdelivr.net/gh/rameshvarun/codec2-emscripten@main/build/c2enc.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-<script defer src="./app.js"></script>
-<script defer src="./create.js"></script>
-<script defer src="./tabs.js"></script>
 </head>
 <body>
 <main>
-<nav><strong>◉ PaperVoice</strong><span>◎ 100% in your browser</span></nav>
-<header><small>Sound inside paper</small><h1>Turn paper back<br>into <em>sound.</em></h1><p>Record or upload a voice message to print on paper. Scan the QR codes later to hear it again.</p></header>
-
-<div class="tabs" role="tablist" aria-label="PaperVoice tools">
-  <button id="tab-decode" role="tab" type="button" aria-selected="true" aria-controls="decode-panel">▦ Decode paper</button>
-  <button id="tab-create" role="tab" type="button" aria-selected="false" aria-controls="create-panel" tabindex="-1">● Create QR message</button>
-</div>
-<section class="panel" id="decode-panel" role="tabpanel" aria-labelledby="tab-decode">
-<h2>Your voice, recovered.</h2>
-<p class="small">Choose the original PDF, a page photo, or individual close-up pictures of all its QR codes.</p>
-<div id="drop" class="drop" tabindex="0" role="button" aria-label="Select QR photos or PDF">
-<div class="illustration">▦</div><b>Drop QR codes here</b><span>Or tap to choose files from your device</span><span>PNG, JPG, WebP or PDF • Multiple files supported</span></div>
-<input id="picker" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.pdf,.png,.jpg,.jpeg,.webp" multiple hidden>
-<p class="note">All QR codes for one message are needed. The recording is inside the codes, not on a website.</p>
-<div id="files" aria-live="polite"></div>
-<div class="controls">
-<button id="decode" class="primary" type="button" disabled>Decode &amp; recover audio</button>
-<button id="clear" class="secondary" type="button" hidden>Clear files</button>
-</div>
-<div id="status" class="status" role="status" aria-live="polite"></div>
-<div id="progress" class="progress" aria-live="polite"></div>
-<div class="output" id="output" hidden>
-<h3>✓ Voice recovered!</h3><p id="info"></p>
-<audio id="audio" controls preload="metadata"></audio>
-<a id="download" class="download">↓ Download recovered audio</a>
-</div>
-<div class="privacy"><span>🔒</span><span>Your voice recordings and photos stay on your device. No media uploads, server audio processing, or usage-based conversion fees. Cloudflare Access handles website sign-in. Browser libraries are downloaded when opening this page.</span></div>
+<header>
+  <a class="logo" href="/" aria-label="PaperVoice home"><span class="logomark" aria-hidden="true">◉</span>PaperVoice</a>
+  <span class="top-label">VOICE ↔ PAPER</span>
+</header>
+<section class="hero" aria-labelledby="hero-title">
+  <div class="eyebrow">WELCOME TO THE PROJECT</div>
+  <h1>Put your voice<br>on <em>paper.</em></h1>
+  <p>Record, print, and recover audio in three different ways. Pick the version you want to use—your original tools and research experiments are kept separate.</p>
 </section>
-<section class="panel" id="create-panel" role="tabpanel" aria-labelledby="tab-create" hidden>
-  <h2>Put your voice on paper.</h2>
-  <p class="small">Preserve the full original audio quality, without the robotic speech codec. Select <strong>Exact original</strong> to store every byte of the input file in the printed QR patterns.</p>
-  <label class="upload-label" for="source-audio">Choose a recording</label>
-  <div class="uploader">
-    <input id="source-audio" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.opus,.webm">
-    <span>MP3, M4A, WAV or other audio formats. Exact mode retains the file's original format and bytes.</span>
+<section aria-labelledby="versions-heading">
+  <div class="section-title"><h2 id="versions-heading">Choose a version</h2><p>All three run in your browser.</p></div>
+  <div class="grid">
+    <a class="version classic" href="/classic/" aria-label="Open PaperVoice Classic, the original QR version">
+      <span class="mini">VERSION 01 · THE ORIGINAL</span>
+      <span class="status">● Tested QR workflow</span>
+      <div class="art" aria-hidden="true"><div class="qr">
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div></div>
+      <h3>PaperVoice Classic</h3>
+      <p>The original QR-code website. Record or upload audio, create QR sheets, and decode them back into a recording.</p>
+      <div class="details"><span>Easy to scan</span><span>Small QR-code capacity</span><span>Original interface retained</span></div>
+      <span class="launch">Open Classic <span aria-hidden="true">↗</span></span>
+    </a>
+    <a class="version paperback" href="/paperback/" aria-label="Open PaperBack Lab, the dense optical format experiment">
+      <span class="mini">VERSION 02 · OPTICAL ARCHIVE</span>
+      <span class="status test">● Camera experiment</span>
+      <div class="art" aria-hidden="true"><div class="dots"></div></div>
+      <h3>PaperBack Lab</h3>
+      <p>High-density black-and-white dot patterns instead of QR codes. Choose between camera-friendly and scanner-quality profiles.</p>
+      <div class="details"><span>Fewer pages than Classic</span><span>Original file preserved</span><span>Physical scan not yet verified</span></div>
+      <span class="launch">Open PaperBack <span aria-hidden="true">↗</span></span>
+    </a>
+    <a class="version research" href="/research/" aria-label="Open SHEET/7 research, the seven-page adaptive optical audio experiment">
+      <span class="mini">VERSION 03 · PAGE LIMIT RESEARCH</span>
+      <span class="status research-tag">● Latest experiment</span>
+      <div class="art" aria-hidden="true"><div class="sheet"></div></div>
+      <h3>SHEET/7 Research</h3>
+      <p>Automatically adjusts dot density to target seven pages, with a fifteen-page fallback while keeping the audio file bit-for-bit identical.</p>
+      <div class="details"><span>Six-page, 60-second digital test</span><span>SHA-256 verified recovery</span><span>iPhone photo test pending</span></div>
+      <span class="launch">Open SHEET/7 <span aria-hidden="true">↗</span></span>
+    </a>
   </div>
-  <div class="record-box">
-    <h3>Or record right here</h3>
-    <p>Use your phone or computer microphone. The browser may ask permission the first time.</p>
-    <div class="record-actions">
-      <button class="mic-btn" type="button" id="record-start">● Start recording</button>
-      <button class="stop-btn" type="button" id="record-stop" disabled>■ Stop</button>
-      <span id="record-timer" aria-live="polite">0:00</span>
-    </div>
-  </div>
-  <label class="upload-label" for="encoding-mode">Encoding quality</label>
-  <select id="encoding-mode" class="encoding-choice" aria-describedby="exact-estimate">
-    <option value="exact" selected>Exact original — zero additional quality loss</option>
-    <option value="tiny">Tiny speech — low-quality Codec 2 (robotic)</option>
-  </select>
-  <p id="exact-estimate" class="estimate" aria-live="polite">Exact original preserves the original audio file bit for bit. This can take many printed pages.</p>
-  <div id="source-info" aria-live="polite"></div>
-  <audio id="source-preview" controls preload="metadata" hidden></audio>
-  <div class="create-controls">
-    <button id="make-qr" class="primary" type="button" disabled>Create QR codes</button>
-    <button id="discard-audio" class="secondary" type="button" hidden>Clear audio</button>
-  </div>
-  <div id="create-status" class="status" role="status" aria-live="polite"></div>
-  <div id="create-progress" class="progress" aria-live="polite"></div>
-  <div id="create-preview" class="output" hidden>
-    <h3>✓ QR voice message created!</h3>
-    <p id="qr-summary"></p>
-    <button id="download-sheet" type="button">↓ Download printable PDF</button>
-    <p style="margin-top:13px">Every QR code is essential. Print or share <strong>every page</strong>, then upload the PDF in the Decode paper tab. Exact original mode reconstructs the same audio file; no audio conversion is performed.</p>
-    <div id="qr-list" class="qr-grid" aria-label="Generated QR codes"></div>
-  </div>
-  <div class="privacy"><span>🔒</span><span>Exact original mode does not recompress your MP3; its SHA-256 verified bytes are preserved. It may require dozens of sheets for even a short MP3. Direct microphone recording first uses your browser's recording format, which can itself be lossy. No file data is uploaded.</span></div>
 </section>
-<div class="steps">
-<div class="step"><span class="number">01</span><b>Upload your paper</b><p>Select a printable PaperVoice PDF or take photos of each QR.</p></div>
-<div class="step"><span class="number">02</span><b>Rebuild the recording</b><p>The browser scans the codes, checks the data, and decodes the speech.</p></div>
-<div class="step"><span class="number">03</span><b>Play and save</b><p>Listen to the recovered voice and download an MP3 to your phone.</p></div>
-</div>
-<footer>PaperVoice v2 · Browser-only, hosted via Cloudflare · Exact file mode (bit-perfect) and legacy Codec 2 · <a href="https://github.com/123abcooooooooo/PaperVoice-Website">View source code</a><p>The page needs a connection to download its software libraries, but your voice messages are never transmitted to them. This is a personal project, not a commercial service.</p></footer>
+<aside class="help">
+  <span class="symbol" aria-hidden="true">i</span>
+  <div><b>Which one should I use?</b><p>Choose <strong>Classic</strong> for the familiar working QR approach, <strong>PaperBack</strong> for the original high-density experiment, or <strong>SHEET/7</strong> when minimizing pages matters most. The dense formats have passed digital file-recovery tests, but still need testing with real printed sheets and iPhone photos.</p></div>
+</aside>
+<footer>
+  <span>© 2026 PaperVoice · Independent audio-on-paper experiments</span>
+  <span>Local audio processing · <a href="https://github.com/123abcooooooooo/PaperVoice-Website">Source code</a></span>
+</footer>
 </main>
-<script>
-window.addEventListener("DOMContentLoaded", () => {
-  if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-});
-</script>
 </body>
 </html>
