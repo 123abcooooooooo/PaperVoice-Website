@@ -16,7 +16,7 @@ async def run():
         page.on("console", lambda msg: logs.append("console "+msg.type+": "+msg.text) if msg.type=="error" else None)
         page.on("requestfailed",lambda request:logs.append("request failed: "+request.url+" "+str(request.failure)))
         try:
-            await page.goto("http://127.0.0.1:8000/",wait_until="load",timeout=60000)
+            await page.goto("http://127.0.0.1:8000/classic/",wait_until="load",timeout=60000)
             libraries=await page.evaluate("""() => ({
               zbar:!!window.zbarWasm?.scanImageData,
               zxing:!!window.ZXing,
