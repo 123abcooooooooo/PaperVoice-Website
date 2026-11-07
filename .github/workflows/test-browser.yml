@@ -29,6 +29,8 @@ jobs:
         run: python tests/test_browser.py
       - name: Verify newly generated QR sheet can be restored as MP3
         run: python tests/test_create.py
+      - name: Verify exact bit-perfect MP3 recovered from printed QR PDF
+        run: python tests/test_exact.py
       - name: Upload screenshot on test failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -37,4 +39,5 @@ jobs:
           path: |
             tests/browser_failure.png
             tests/create_browser_failure.png
+            tests/exact_browser_failure.png
           if-no-files-found: ignore
