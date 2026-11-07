@@ -32,6 +32,11 @@ jobs:
           sleep 2
       - name: Verify browser MP3 to PaperBack PDF to same MP3
         run: python tests/test_paperback.py
+      - name: Verify larger multi-page PaperBack archive and exact recovery
+        env:
+          PAPERBACK_TEST_DURATION: "18"
+          PAPERBACK_REQUIRE_MULTIPAGE: "1"
+        run: python tests/test_paperback.py
       - name: Upload failure screenshot
         if: failure()
         uses: actions/upload-artifact@v4
