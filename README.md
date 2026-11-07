@@ -31,6 +31,43 @@ Microphone recording: the browser creates an M4A or WebM file first; exact mode 
 6. In **Decode paper**, upload the original PDF or full-page photographs. Select **Decode & recover audio**.
 7. Play the recovered file and select **Download exact original**. If you uploaded MP3, the downloaded MP3 is bit-identical.
 
+## PaperBack Lab — separate experimental site
+
+**Open:** [papervoice.123abcooo.me/paperback/](https://papervoice.123abcooo.me/paperback/)
+
+The classic PaperVoice site at `/` is unchanged. The lab at `/paperback/`
+uses the **actual PaperBack 1.10-compatible format** through `paperback.rs 1.3.2`
+WebAssembly (GPL-3.0-or-later, pinned to
+`J0s3f/paperback-homepage@c26a0e05070fe8bb1664b6700c0f67ff7cf64af3`).
+The WebAssembly library is fetched from jsDelivr; audio and photographs remain
+on your device.
+
+The new UI has two views:
+
+- **Encode to paper:** record from the microphone or upload MP3/M4A/WAV etc.,
+  then choose a paper density and generate a printable PaperBack PDF. The file
+  bytes remain unchanged; optional reversible bzip2 compression and Reed–Solomon
+  error correction are applied *to the paper archive*, not to the audio.
+- **Recover audio:** upload the original PDF, smartphone photos, or scanner
+  images of all pages, and decode the original audio file in the browser.
+
+**Try the Phone-first test (150/75 DPI)** first if you plan to photograph the
+paper with an iPhone. It uses more sheets but is easier to photograph.
+**Balanced (300/150 DPI)** requires a much better scan. **Maximum density
+(600/300 DPI)** is for a 600-DPI laser printer and a high-resolution flatbed
+scanner; do **not** assume an iPhone photo will read it.
+
+Print at **actual size / 100%, without scaling** and scan the entire page in
+bright even light. The product is experimental: test a real printed sheet,
+recover the audio, and verify byte identity before relying on the paper copy.
+Bit-perfect recovery of the audio file is the design goal, not a guarantee of
+successful recovery from every photograph.
+
+Upstream GPL license/credit information:
+`docs/paperback/NOTICE.md`.
+Integration test: `tests/test_paperback.py` and
+`.github/workflows/test-paperback.yml`.
+
 ## Technical format
 
 - PV2 manifest: `PV2:M:ID:0000:COUNT:BASE45(JSON)`, where JSON contains the original file name, MIME, size and full SHA-256 digest.
