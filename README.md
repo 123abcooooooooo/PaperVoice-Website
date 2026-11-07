@@ -1,61 +1,60 @@
-# PaperVoice — voice messages printed on paper
+# PaperVoice — store sound on paper
 
-The static website is at https://123abcooooooooo.github.io/PaperVoice-Website/ (after GitHub Pages is enabled).
+**Private website:** https://papervoice.123abcooo.me
 
-The website creates printed PaperVoice v1 QR codes from recorded or uploaded audio and reconstructs QR photos/PDFs into downloadable MP3s entirely inside the browser. There is no server, user account, audio upload, or usage-based hosting bill.
+A browser-only application that stores audio in printable QR patterns, and recovers it when scanned. Cloudflare Workers Static Assets hosts the files. Cloudflare Access protects the site with login. No recording is sent to a server for encoding or decoding.
 
-## Publish for free — one-time setup
+## Audio quality
 
-1. Go to https://github.com/123abcooooooooo/PaperVoice-Website/settings/pages
-2. Under Build and deployment, choose "Deploy from a branch."
-3. Select branch "main" and folder "/docs", and press Save.
-4. After the Pages deployment succeeds, open https://123abcooooooooo.github.io/PaperVoice-Website/
+**Exact original (PV2) — default:**
+- Upload an MP3 to encode its original bytes without decoding or recompressing the MP3.
+- The printed QR codes contain every byte of the MP3; SHA-256 validates exact integrity on restoration.
+- After scanning **all** QRs, the original file is downloaded in its original file format/name. In the MP3 case it is **bit-for-bit identical** to the uploaded MP3.
+- The same applies to M4A, WAV, or other input audio formats: exact mode restores the **same format**, not automatically a different MP3.
+- **Major limitation:** MP3 files need many QR codes. PaperVoice packs 850 bytes per QR, with 12 QRs per US Letter page and one extra manifest QR. About 10 KB of audio per page. A 300 KB MP3 requires about 30 printed pages, not one QR code.
+- Browser prototype limit: 480 QR codes / 40 pages, corresponding to approximately 407 KB of audio. The site estimates the pages and refuses oversized originals before encoding.
 
-The original FastAPI and Docker files are legacy: GitHub Pages only serves the static website inside the docs folder.
+**Tiny Speech (PV1:T) — legacy, optional:**
+- Codec 2 at 1300 bps compresses speech extremely heavily. The sound is robotic and far from the original; not recommended for quality.
 
-## Create a QR voice message (new)
+**PV1:O Clear:** Older Ogg Opus codes are still supported for decoding, and are re-encoded to 64 kbps MP3. This does not preserve exact original bytes.
 
-Open the hosted PaperVoice website and select **Create QR message**.
+Microphone recording: the browser creates an M4A or WebM file first; exact mode preserves that newly recorded *file* without additional losses. It cannot recover an uncompressed microphone signal if the browser recorded using a lossy codec.
 
-1. Tap **Start recording** (allow microphone access), speak and stop, **or** select a local audio file (MP3, M4A, WAV, or another browser-supported audio format).
-2. Tap **Create QR codes**. The browser downmixes audio to mono 8 kHz, compresses it with Codec 2 mode 1300, and encodes the bytes as Base45 across a numbered set of QR codes in the original PV1:T format.
-3. Select **Download printable PDF**. All QR codes must be kept together for playback. PaperVoice arranges four codes per US Letter page.
-4. To recover the message, select **Decode paper**, upload the printed-page PDF or scans, and download the MP3.
+## Using the website
 
-The feature supports recordings up to **90 seconds**; shorter recordings use fewer QR codes and scan more reliably. **Speech compression is lossy and can sound robotic; it is not suitable for high-fidelity music.** No audio files or recordings are sent to a backend service. The libraries are loaded over HTTPS into the browser.
+1. Sign in through Cloudflare Access at https://papervoice.123abcooo.me
+2. Select **Create QR message**.
+3. Upload your original audio file, or record directly with the microphone.
+4. Leave **Exact original — zero additional quality loss** selected. Check the exact page-count estimate.
+5. Select **Create QR codes → Download printable PDF**. All QR codes on all pages are required to recover the original.
+6. In **Decode paper**, upload the original PDF or full-page photographs. Select **Decode & recover audio**.
+7. Play the recovered file and select **Download exact original**. If you uploaded MP3, the downloaded MP3 is bit-identical.
 
-## Usage
+## Technical format
 
-1. Open the published site on your iPhone or computer.
-2. Upload the original printable PDF, a photo of the page, or photos of each QR code from one voice message.
-3. Press "Decode & make MP3".
-4. Listen and download.
+- PV2 manifest: `PV2:M:ID:0000:COUNT:BASE45(JSON)`, where JSON contains the original file name, MIME, size and full SHA-256 digest.
+- PV2 data: `PV2:F:ID:INDEX:COUNT:BASE45(DATA)`, with 4-digit sequence numbers. All codes must be present.
+- QR code ECC M, max 850 original bytes each, plus ~1 manifest QR. The printable PDF includes 12 codes per Letter page for exact originals. QR code data is **not encrypted**; anyone with the physical pages can recover the file.
+- QR reader detects multiple patterns in PDF and images using zbar-wasm and ZXing. SHA-256 verification ensures no partial or damaged audio is released.
+- The old PV1:T / PV1:O protocols remain readable, for compatibility with earlier prints.
 
-## Formats
+## Deployment and security
 
-PaperVoice v1 QR data starts with PV1: and stores Base45 data across numbered QR codes. After collecting and verifying the full set using SHA-256:
-- Tiny mode (T) decodes Codec 2 at 1300 bps via a browser WebAssembly decoder, with the FFmpeg .c2 seven-byte container header removed.
-- Clear mode (O) decodes Ogg/Opus using Web Audio in compatible browsers.
-- Both modes export mono 24 kHz MP3 at 64 kbps with a browser-side JavaScript encoder.
+GitHub stores the code at https://github.com/123abcooooooooo/PaperVoice-Website and Cloudflare Workers serves `/docs` using `wrangler.jsonc`. The repository is public, so do not commit secrets, credentials, or personal audio.
 
-The interface reports missing QR numbers, damaged scans, checksums, and mixed recordings.
+GitHub Pages **must remain unpublished and disabled**. If GitHub Pages serves the same source, it creates an alternative public URL outside of Cloudflare Access.
 
-## Privacy and limitations
+Cloudflare Access must protect all Worker traffic, including custom production domain and previews. Always test in private browsing before sharing your address. Site access login does **not** encrypt the QR codes themselves.
 
-No user media leaves the browser. The application downloads its JavaScript/WASM code from CDNs; these libraries do not receive the QR data or recording. Internet access is needed initially to load the website and libraries. The QR codes are not encrypted, so anyone with all the codes can restore the sound.
+Browser dependencies are fetched from CDNs. No media uploads or per-conversion server fees. Large PDFs can take substantial time/memory on iPhones; for high-quality files, a single QR **link** to a hosted original is more practical but requires internet to play and is not paper-only storage.
 
-Up to 24 images/PDF files, 25 MB each, and 12 pages per PDF. Blurry scans may require closer photos. Older browsers may not decode Ogg/Opus.
+## Testing
 
-GitHub Pages is free for this public repository within GitHub's published usage and acceptable-use policies. No per-conversion cloud compute fees.
+GitHub Actions performs:
+- JavaScript syntax checks
+- Legacy paper QR PDF → Codec 2 decoder → MP3
+- Tiny audio → QR PDF → restored MP3
+- Exact MP3 → QR PDF → byte-for-byte identical MP3 with matching SHA-256
 
-Libraries used (downloaded from public CDNs):
-- ZXing-JS 0.21.3 (Apache-2.0): https://github.com/zxing-js/library
-- PDF.js 3.11.174 (Apache-2.0): https://github.com/mozilla/pdf.js
-- lamejs 1.2.1 (LGPL-3.0): https://github.com/zhuker/lamejs
-- Codec 2 Emscripten decoder (LGPL-2.1): https://github.com/rameshvarun/codec2-emscripten
-
-## Optional Namecheap domain
-
-After you have verified the GitHub Pages URL, you can use papervoice.123abcooo.me. Add that name in GitHub's Settings → Pages → Custom domain and configure a Namecheap CNAME with Host "papervoice" and Value "123abcooooooooo.github.io". Then verify DNS and enable Enforce HTTPS.
-
-This is an educational/personal prototype.
+See `.github/workflows/test-browser.yml`. This is a personal educational prototype.
