@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#121a1e">
+<meta name="description" content="PaperVoice PaperBack experiment. Store original sound bit-for-bit on high-density paper and recover it from photos or scanned PDFs.">
+<title>PaperVoice / PaperBack Lab</title>
+<link rel="stylesheet" href="./style.css">
+<script defer src="./app.js"></script>
+</head>
+<body>
+<main>
+<header>
+  <nav class="top">
+    <a class="back" href="/">← PaperVoice classic</a>
+    <span class="pill"><span class="dot"></span> EXPERIMENTAL LAB · V1</span>
+  </nav>
+  <div class="hero">
+    <div class="eyebrow">PAPERIC / 001 &nbsp;·&nbsp; PHYSICAL DATA STORAGE</div>
+    <h1>PaperBack<span> Lab.</span></h1>
+    <p class="lead">A high-density paper experiment. Preserve the exact original audio bytes inside a sheet of tiny printed dots—and recover them later from a PDF, scan, or photo.</p>
+    <div class="metrics">
+      <div><strong>100%</strong><small>Original file preserved</small></div>
+      <div><strong>0</strong><small>Media files uploaded</small></div>
+      <div><strong>1.10</strong><small>Compatible page format</small></div>
+    </div>
+  </div>
+</header>
+<section class="workspace">
+  <div class="navtabs" role="tablist" aria-label="PaperBack tools">
+    <button id="tab-encode" class="tab" role="tab" aria-selected="true" aria-controls="pane-encode">01 <span>Encode to paper</span></button>
+    <button id="tab-decode" class="tab" role="tab" aria-selected="false" aria-controls="pane-decode">02 <span>Recover audio</span></button>
+  </div>
+  <section id="pane-encode" role="tabpanel" aria-labelledby="tab-encode">
+    <div class="sectiontop"><div><p class="kicker">01 / SOURCE</p><h2>Start with sound.</h2><p>Record your voice here, or use an existing audio file. The PaperBack engine preserves the file as-is, without any audio conversion.</p></div><span class="corner">↳ INPUT</span></div>
+    <label class="fieldLabel" for="encode-file">Upload existing audio</label>
+    <div class="inputbox"><input id="encode-file" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.webm,.ogg,.flac"><small>MP3, M4A, WAV, FLAC, WebM or other supported audio file. Up to 6 MB in this browser experiment.</small></div>
+    <div class="or"><span>OR RECORD DIRECTLY</span></div>
+    <div class="recordpanel">
+      <div class="recordcopy"><strong>Microphone</strong><small>Record on this device. The recording format is chosen by your browser; PaperBack will then preserve that recorded file exactly.</small></div>
+      <div class="recordbuttons">
+        <button id="record-start" class="outline" type="button">● Start recording</button>
+        <button id="record-stop" class="outline" type="button" disabled>■ Stop</button>
+        <span id="timer">0:00</span>
+      </div>
+    </div>
+    <div id="source-card" class="source-card" hidden>
+      <div><span class="label">SELECTED FILE</span><div id="source-name" class="source-name"></div><small id="source-size"></small></div>
+      <button id="source-remove" class="textbutton" type="button">Remove</button>
+      <audio id="source-player" controls preload="metadata"></audio>
+    </div>
+    <div class="sectiontop tight"><div><p class="kicker">02 / PRINT PROFILE</p><h2>Choose your density.</h2><p>Finer dots fit more data on paper, but are harder to recover with a phone camera.</p></div></div>
+    <div class="choiceList">
+      <label class="choice"><input type="radio" name="profile" value="camera" checked><span><b>Phone-first test</b><small>150 DPI print / 75 DPI data dots. Easier to photograph, but needs more sheets.</small></span><span class="chip">START HERE</span></label>
+      <label class="choice"><input type="radio" name="profile" value="inkjet"><span><b>Balanced</b><small>300 DPI print / 150 DPI data dots. Better density; high-quality scan recommended.</small></span></label>
+      <label class="choice"><input type="radio" name="profile" value="laser"><span><b>Maximum density</b><small>600 DPI laser / 300 DPI data dots. Fewest pages, but a flatbed scanner is strongly recommended.</small></span></label>
+    </div>
+    <div class="actionline">
+      <button id="encode-button" class="action" type="button" disabled><span>Generate PaperBack archive</span><span>↗</span></button>
+    </div>
+    <p id="encode-status" class="status" role="status" aria-live="polite"></p>
+    <div id="encode-result" class="result" hidden>
+      <div class="successhead"><span class="check">✓</span><div><h3>Archive generated</h3><p id="encode-summary"></p></div></div>
+      <a id="pdf-download" class="action download" href="#">↓ Download printable PDF</a>
+      <div class="previewgrid">
+        <div class="sheet"><img id="preview-image" alt="Preview of the first high-density PaperBack printed page"></div>
+        <div class="tips"><b>Before you print</b><p>Use <strong>actual size / 100%</strong>, no fit-to-page scaling. Print in black and white at your printer's highest quality. Keep all pages.</p><p>This PDF is a real PaperBack-style archive, not a QR code or an internet link.</p></div>
+      </div>
+    </div>
+  </section>
+  <section id="pane-decode" role="tabpanel" aria-labelledby="tab-decode" hidden>
+    <div class="sectiontop"><div><p class="kicker">03 / CAPTURE</p><h2>Recover from paper.</h2><p>Upload the generated PDF or clear, full-page photographs from your iPhone. Select every printed page; the decoder accepts them in any order.</p></div><span class="corner">↳ RESTORE</span></div>
+    <label class="fieldLabel" for="scan-files">Select PDF, photos or scanner images</label>
+    <div class="inputbox"><input id="scan-files" type="file" multiple accept="image/*,application/pdf,.pdf,.png,.jpg,.jpeg,.webp,.bmp,.heic"><small>Choose all pages. JPG, PNG, PDF, BMP; on iOS choose photos at original/high resolution.</small></div>
+    <div class="recordpanel capture">
+      <div class="recordcopy"><strong>Take a photograph</strong><small>Center the entire sheet, avoid shadows and glare, and hold your iPhone directly above it.</small></div>
+      <label class="outline camera-label">◎ Open camera<input id="camera-input" type="file" accept="image/*" capture="environment" hidden></label>
+    </div>
+    <div id="scan-list" class="filelist" aria-live="polite">No scans selected.</div>
+    <div class="actionline"><button id="decode-button" class="action" type="button" disabled><span>Recover original audio</span><span>↘</span></button></div>
+    <p id="decode-status" class="status" role="status" aria-live="polite"></p>
+    <div id="decode-result" class="result" hidden>
+      <div class="successhead"><span class="check">✓</span><div><h3>Original audio recovered</h3><p id="decode-summary"></p></div></div>
+      <audio id="recovered-player" controls preload="metadata"></audio>
+      <a id="recovered-download" class="action download" href="#">↓ Download original file</a>
+    </div>
+  </section>
+</section>
+<aside class="disclaimer">
+  <div class="icon">!</div>
+  <div><strong>Experimental, not yet proven with your iPhone camera.</strong><p>High-density optical patterns are very sensitive to printing, resolution and focus. The original PaperBack technology recommends a flatbed scanner for maximum density. Always verify your paper backup by decoding it before discarding the digital original.</p></div>
+</aside>
+<footer>
+  <p><strong>PAPERVOICE / PAPERBACK LAB</strong> · A separate experimental route from the original PaperVoice.</p>
+  <p>Powered by <a href="https://github.com/J0s3f/paperback.rs">paperback.rs 1.3.2</a> (GPL-3.0-or-later), a compatible port of <a href="https://ollydbg.org/Paperbak/">PaperBack by Oleh Yuschuk</a>. <a href="./NOTICE.md">Licenses &amp; credits</a>.</p>
+  <p>All audio and scans stay on your device; a pinned WebAssembly module is loaded from jsDelivr. This is storage, <em>not encryption</em>; anyone with every sheet can restore your recording.</p>
+</footer>
+</main>
+</body>
+</html>
