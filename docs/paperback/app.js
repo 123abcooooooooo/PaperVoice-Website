@@ -240,6 +240,11 @@
     resetDecode();displayScans();update();
     if(added)status(decodeStatus,scans.length+" file(s) selected. Include all pages before decoding.");
   }
+  el("clear-scans").addEventListener("click",()=>{
+    if(busy)return;
+    scans=[];scanInput.value="";cameraInput.value="";
+    displayScans();resetDecode();status(decodeStatus,"");update();
+  });
   scanInput.addEventListener("change",()=>{
     addScans(Array.from(scanInput.files||[]));scanInput.value="";
   });
