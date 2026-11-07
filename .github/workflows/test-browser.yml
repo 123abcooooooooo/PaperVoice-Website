@@ -25,6 +25,8 @@ jobs:
         run: |
           python -m http.server 8000 --directory docs >/tmp/papervoice-http.log 2>&1 &
           sleep 2
+      - name: Verify homepage and all three application routes
+        run: python tests/test_home.py
       - name: Exercise upload, QR scan, Codec2 decode and MP3 export
         run: python tests/test_browser.py
       - name: Verify newly generated QR sheet can be restored as MP3
@@ -37,6 +39,7 @@ jobs:
         with:
           name: paper-voice-browser-failure
           path: |
+            tests/homepage_failure.png
             tests/browser_failure.png
             tests/create_browser_failure.png
             tests/exact_browser_failure.png
