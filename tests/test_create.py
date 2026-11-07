@@ -32,7 +32,7 @@ async def main():
         page.on("pageerror",lambda error:errors.append("Page JS: "+str(error)))
         page.on("requestfailed",lambda request:errors.append("Asset: "+request.url+" "+str(request.failure)))
         try:
-            await page.goto("http://127.0.0.1:8000/",wait_until="load",timeout=60000)
+            await page.goto("http://127.0.0.1:8000/classic/",wait_until="load",timeout=60000)
             modules=await page.evaluate("""() => ({
                 qrcode:typeof window.qrcode,
                 c2enc:typeof window.createC2Enc,
