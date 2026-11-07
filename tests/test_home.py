@@ -27,6 +27,7 @@ async def main():
 
             await page.locator('a.version[href="/classic/"]').click()
             assert page.url.endswith("/classic/"),page.url
+            await page.wait_for_load_state("load",timeout=60000)
             assert await page.locator("#tab-decode").is_visible()
             await page.locator("#tab-create").click()
             assert await page.locator("#create-panel").is_visible()
