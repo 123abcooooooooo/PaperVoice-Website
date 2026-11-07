@@ -21,7 +21,7 @@ async def main():
         page.on("pageerror",lambda e:errors.append("JS "+str(e)))
         page.on("requestfailed",lambda r:errors.append("ASSET "+r.url+" "+str(r.failure)))
         try:
-            await page.goto("http://127.0.0.1:8000/",wait_until="load",timeout=60000)
+            await page.goto("http://127.0.0.1:8000/classic/",wait_until="load",timeout=60000)
             await page.locator("#tab-create").click()
             assert await page.locator("#encoding-mode").input_value()=="exact"
             await page.locator("#source-audio").set_input_files(str(MP3))
