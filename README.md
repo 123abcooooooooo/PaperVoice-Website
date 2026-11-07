@@ -31,6 +31,35 @@ Microphone recording: the browser creates an M4A or WebM file first; exact mode 
 6. In **Decode paper**, upload the original PDF or full-page photographs. Select **Decode & recover audio**.
 7. Play the recovered file and select **Download exact original**. If you uploaded MP3, the downloaded MP3 is bit-identical.
 
+## SHEET/7 research experiment — one minute, seven pages
+
+**New independent research website:**
+https://papervoice.123abcooo.me/research/
+
+This experimental route uses an adaptive-density search on the existing PaperBack
+WASM engine. It **does not recode audio**, chooses the least dense pattern that
+meets the **7-page** target (falling back to **15**), and requires a matching
+SHA-256 digest after automatically decoding the generated PDF before allowing
+the download. It is distinct from both the classic site (`/`) and the initial
+PaperBack Lab (`/paperback/`).
+
+**First measured digital benchmark (2026-11-07):**
+
+| Test | Result |
+| --- | --- |
+| 60-second 128 kbps MP3 | 960,932 original bytes |
+| 600 DPI printer, modern profile, 20% parity | selected 180 optical dots/inch |
+| Printed pages | **6** |
+| Original MP3 reconstructed from generated PDF | **SHA-256 exact match** |
+| Physical iPhone print-and-photo test | **Not yet performed** |
+
+GitHub benchmark:
+https://github.com/123abcooooooooo/PaperVoice-Website/actions/runs/42394243040
+
+See [the research notebook](docs/research/RESEARCH.md) for methodology,
+limitations, recommended iPhone 48 MP capture, and a possible future
+multi-photo tiled layout if a whole-sheet photograph cannot resolve the dots.
+
 ## PaperBack Lab — separate experimental site
 
 **Open:** [papervoice.123abcooo.me/paperback/](https://papervoice.123abcooo.me/paperback/)
