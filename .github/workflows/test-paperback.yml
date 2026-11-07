@@ -1,0 +1,41 @@
+name: Verify PaperBack Lab browser roundtrip
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/paperback/**'
+      - 'tests/test_paperback.py'
+      - '.github/workflows/test-paperback.yml'
+  workflow_dispatch:
+jobs:
+  paperback-roundtrip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Playwright and Chromium
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+      - name: Check PaperBack Lab JS syntax
+        run: |
+          node --check docs/paperback/app.js
+          node --check docs/paperback/worker.js
+      - name: Run static test server
+        run: |
+          python -m http.server 8000 --directory docs >/tmp/pb-server.log 2>&1 &
+          sleep 2
+      - name: Verify browser MP3 to PaperBack PDF to same MP3
+        run: python tests/test_paperback.py
+      - name: Upload failure screenshot
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paperback-browser-debug
+          path: tests/paperback_failure.png
+          if-no-files-found: ignore
