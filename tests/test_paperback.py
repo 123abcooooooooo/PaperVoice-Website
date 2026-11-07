@@ -9,8 +9,9 @@ SOURCE=HERE/"paperback_original.mp3"
 PDF=HERE/"paperback_printed.pdf"
 
 async def main():
+    duration=float(os.environ.get("PAPERBACK_TEST_DURATION", "2.5"))
     subprocess.run(["ffmpeg","-hide_banner","-loglevel","error","-y",
-        "-f","lavfi","-i","sine=frequency=440:sample_rate=24000:duration=2.5",
+        "-f","lavfi","-i","sine=frequency=440:sample_rate=24000:duration="+str(duration),
         "-c:a","libmp3lame","-b:a","48k",str(SOURCE)],check=True)
     original=SOURCE.read_bytes()
     hash_before=hashlib.sha256(original).hexdigest()
@@ -35,6 +36,10 @@ async def main():
             summary=await page.locator("#encode-summary").inner_text()
             print("PaperBack generated:",summary,flush=True)
             assert "printable page" in summary
+            if os.environ.get("PAPERBACK_REQUIRE_MULTIPAGE"):
+                import re
+                match=re.search(r"on (\d+) printable page",summary)
+                assert match and int(match.group(1))>1,summary
             async with page.expect_download(timeout=120000) as d:
                 await page.locator("#pdf-download").click()
             download=await d.value
@@ -61,6 +66,26 @@ async def main():
             assert data["size"]==len(original),(data["size"],len(original))
             assert data["hash"]==hash_before,(data["hash"],hash_before)
             print("PASS: PaperBack Lab ORIGINAL MP3 recovered byte-for-byte and SHA-256 matches.",flush=True)
+            if duration<=3:
+                image=HERE/"paperback_preview.png"
+                async with page.expect_download(timeout=60000) as shot:
+                    await page.evaluate("""() => {
+                      const anchor=document.createElement("a");
+                      anchor.href=document.querySelector("#preview-image").src;
+                      anchor.download="paperback_preview.png";anchor.click();
+                    }""")
+                await (await shot.value).save_as(str(image))
+                await page.locator("#scan-files").set_input_files(str(image))
+                await page.locator("#decode-button").click()
+                await page.locator("#decode-result").wait_for(state="visible",timeout=120000)
+                second=await page.evaluate("""async()=>{
+                  const r=await fetch(document.querySelector("#recovered-download").href);
+                  const b=new Uint8Array(await r.arrayBuffer());
+                  const h=new Uint8Array(await crypto.subtle.digest("SHA-256",b));
+                  return {size:b.length,hash:[...h].map(n=>n.toString(16).padStart(2,"0")).join("")};
+                }""")
+                assert second["size"]==len(original) and second["hash"]==hash_before,second
+                print("PASS: Original PaperBack PNG also recovered exact MP3 bytes.",flush=True)
         except Exception:
             await page.screenshot(path=str(HERE/"paperback_failure.png"),full_page=True)
             print("Encode status:",await page.locator("#encode-status").inner_text(),flush=True)
