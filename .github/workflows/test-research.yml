@@ -1,0 +1,39 @@
+name: SHEET7 optical density research benchmark
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/research/**'
+      - 'tests/test_research.py'
+      - '.github/workflows/test-research.yml'
+  workflow_dispatch:
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install browser test software
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+      - name: Validate research scripts
+        run: node --check docs/research/app.js
+      - name: Start website locally
+        run: |
+          python -m http.server 8000 --directory docs >/tmp/research-server.log 2>&1 &
+          sleep 2
+      - name: Run 60-second 128-kbps adaptive-density paper experiment
+        run: python tests/test_research.py
+      - name: Attach diagnostic screenshot
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sheet7-research-debug
+          path: tests/research_failure.png
+          if-no-files-found: ignore
