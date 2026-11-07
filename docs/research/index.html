@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#121a29">
+<meta name="description" content="PaperVoice SHEET/7 research prototype: adaptive high-density, byte-perfect audio storage on printable paper.">
+<title>SHEET/7 | PaperVoice Optical Research</title>
+<link rel="stylesheet" href="./style.css">
+<script defer src="./app.js"></script>
+</head>
+<body>
+<main>
+<nav class="top">
+  <a class="back" href="/paperback/">← PaperBack Lab</a>
+  <div class="version">PAPERVOICE R&amp;D <span>RESEARCH BUILD 01</span></div>
+</nav>
+<header class="hero">
+  <div class="overline">OPTICAL DATA STORAGE / AN EXPERIMENT</div>
+  <h1>One minute.<br><em>Seven sheets.</em></h1>
+  <p>Could a 48 MP iPhone photograph enough microscopic printed data to reconstruct an original recording <strong>byte for byte</strong>? This laboratory tests an adaptive-density approach.</p>
+  <div class="statbar">
+    <div><strong>07</strong><small>target sheets</small></div>
+    <div><strong>15</strong><small>fallback maximum</small></div>
+    <div><strong>SHA-256</strong><small>bit-exact verification</small></div>
+  </div>
+</header>
+<div class="warning"><span class="warnicon">!</span><div><strong>Unproven on a physical page.</strong> This is a genuine research prototype, not a validated new optical storage standard. PDFs can pass a digital test and still fail when photographed. Keep the original audio until physical recovery succeeds.</div></div>
+<section class="panel">
+  <div class="tabs" role="tablist" aria-label="Research experiments">
+    <button id="tab-create" role="tab" type="button" aria-selected="true" aria-controls="create-panel">01 / EXPERIMENT</button>
+    <button id="tab-restore" role="tab" type="button" aria-selected="false" aria-controls="restore-panel">02 / RECOVER</button>
+  </div>
+  <div id="create-panel" role="tabpanel" aria-labelledby="tab-create">
+    <div class="heading"><div><span class="step">01 · SOURCE</span><h2>Use the original recording.</h2><p>Audio is never transcoded. The same MP3, M4A, or microphone recording file will be reconstructed exactly.</p></div></div>
+    <label class="label" for="source-file">Upload audio file</label>
+    <div class="inputsurface"><input id="source-file" type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.flac,.webm,.ogg"><small>Maximum 6 MB in this phone-oriented experiment.</small></div>
+    <div class="subheading">OR RECORD ON THIS DEVICE</div>
+    <div class="mic">
+      <div class="microphone">◉</div><div class="miccopy"><strong>Direct voice recording</strong><small>Your device chooses the initial audio encoding; PaperVoice preserves that recorded file exactly.</small></div>
+      <div class="miccontrols"><button type="button" id="record" class="secondary">● Record</button><button type="button" id="stop" class="secondary" disabled>■ Stop</button><span id="record-time">0:00</span></div>
+    </div>
+    <div id="selected" class="selected" hidden>
+      <span class="meta">SELECTED ORIGINAL</span>
+      <strong id="selected-name"></strong>
+      <span id="selected-size"></span>
+      <audio id="source-player" controls preload="metadata"></audio>
+    </div>
+    <div class="heading middle"><div><span class="step">02 · ENGINE</span><h2>Choose a page target.</h2><p>We'll adjust print density automatically while preserving the file and keeping Reed–Solomon error correction enabled.</p></div></div>
+    <div class="settings">
+      <div>
+        <label class="label" for="target">Page budget</label>
+        <select id="target"><option value="7" selected>7 sheets · ambitious</option><option value="15">15 sheets · more forgiving</option></select>
+      </div>
+      <div>
+        <label class="label" for="printer">Printer resolution</label>
+        <select id="printer"><option value="600" selected>600 DPI laser / high quality</option><option value="300">300 DPI printer</option></select>
+      </div>
+    </div>
+    <div class="research-note"><strong>Research method:</strong> Density search from 120–300 data dots per inch, selecting the lowest density that meets your page budget. A 600-DPI printer is needed for most seven-sheet attempts. We use the proven PaperBack format; the adaptive selection strategy is experimental.</div>
+    <button id="run" type="button" class="primary" disabled><span>Run density experiment</span><span>↗</span></button>
+    <p class="status" id="create-status" role="status" aria-live="polite"></p>
+    <div id="trials" class="trials" hidden>
+      <h3>Research log</h3><div id="trial-list" aria-live="polite"></div>
+    </div>
+    <div id="created" class="result" hidden>
+      <div class="result-title"><div class="check">✓</div><div><strong id="result-head">Archive created</strong><small id="result-meta"></small></div></div>
+      <div class="numbers">
+        <div><span>ACTUAL PAGE COUNT</span><strong id="page-number"></strong></div>
+        <div><span>PRINTED DOT DENSITY</span><strong id="dot-number"></strong></div>
+        <div><span>ORIGINAL FILE MATCH</span><strong id="hash-label"></strong></div>
+      </div>
+      <a id="pdf-link" class="primary download" download>↓ Download printable archive PDF</a>
+      <div class="imagepreview"><img id="first-image" alt="First page of the experimental dense optical archive"><p>Preview of the first page. Print the PDF at <strong>actual size (100%)</strong>, in high-quality black and white. Do not enlarge or shrink it.</p></div>
+    </div>
+  </div>
+  <div id="restore-panel" role="tabpanel" aria-labelledby="tab-restore" hidden>
+    <div class="heading"><div><span class="step">03 · RECOVER</span><h2>Recover every byte.</h2><p>Upload all paper photographs, scanner images, or the generated PDF. For dense pages, capture one flat sheet at a time at full 48 MP resolution.</p></div></div>
+    <div class="inputsurface"><input id="scans" type="file" multiple accept="image/*,.pdf,application/pdf,.jpg,.jpeg,.png,.bmp,.heic,.heif"><small>Full original resolution. Multiple files supported. Camera photos are not yet guaranteed to work.</small></div>
+    <div class="camerahelp">
+      <strong>Capture tip · iPhone 15 Pro Max</strong>
+      <p>In Settings → Camera → Formats, enable <strong>ProRAW &amp; Resolution Control</strong>. Use <strong>HEIF Max (48 MP)</strong> or RAW Max at <strong>1×</strong>, with strong even light and no flash or Night mode. Save the original image—avoid compressed screenshots and messaging apps.</p>
+    </div>
+    <div class="scan-actions"><button id="clear" type="button" class="secondary">Clear scans</button><span id="file-count">No scans selected</span></div>
+    <button id="restore" class="primary" type="button" disabled><span>Decode and verify original</span><span>↘</span></button>
+    <p class="status" id="restore-status" role="status" aria-live="polite"></p>
+    <div id="restored" class="result" hidden>
+      <div class="result-title"><div class="check">✓</div><div><strong>Original recording restored</strong><small id="restored-info"></small></div></div>
+      <audio id="restored-player" controls preload="metadata"></audio>
+      <a id="restored-link" class="primary download" download>↓ Download bit-exact original file</a>
+      <p id="restored-sha" class="hash"></p>
+    </div>
+  </div>
+</section>
+<footer>
+  <p>SHEET/7 RESEARCH PROTOTYPE · No audio uploads · No additional audio compression · Byte-perfect verification</p>
+  <p>Built using <a href="https://github.com/J0s3f/paperback.rs">paperback.rs (GPL-3.0-or-later)</a> and experimental adaptive-density search. <a href="/paperback/NOTICE.md">Licenses &amp; upstream credits</a>. A high density is not necessarily readable from a phone photo.</p>
+</footer>
+</main>
+</body>
+</html>
