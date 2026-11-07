@@ -164,24 +164,58 @@
   }
   async function search(bytes,name,dpi,goal,cache){
     const densities=dpi===600?densities600:densities300;
-    let lo=0,hi=densities.length-1,winning=null;
-    while(lo<=hi){
-      const mid=Math.floor((lo+hi)/2),density=densities[mid];
-      let result=cache.get(density);
-      if(!result){
-        message(statusCreate,"Testing "+density+" dots/inch on "+dpi+" DPI printer…");
-        await yieldUI();
-        result=await call({type:"encode",name,bytes,
-          settings:{preset:"modern",paper:"letter",printerDpi:dpi,dotDpi:density,
-            dotPercent:80,compression:"max",marginMils:500,parityPercent:20}});
-        cache.set(density,result);
-        logTrial(density,result.pageCount,goal);
+    async function encodeAt(index){
+      const density=densities[index];
+      if(cache.has(density))return cache.get(density);
+      message(statusCreate,"Testing "+density+" dots/inch on "+dpi+" DPI printer…");
+      await yieldUI();
+      const result=await call({type:"encode",name,bytes,
+        settings:{preset:"modern",paper:"letter",printerDpi:dpi,dotDpi:density,
+          dotPercent:80,compression:"max",marginMils:500,parityPercent:20}});
+      cache.set(density,result);
+      logTrial(density,result.pageCount,goal);
+      return result;
+    }
+    // Empirical starting point from the full-minute 128 kbps test.
+    // It reduces WASM memory/time on a phone by trying a likely density first,
+    // rather than generating several unnecessarily enormous print layouts.
+    let start=0;
+    if(dpi===600){
+      if(bytes.length<180000)start=0;
+      else if(bytes.length<450000)start=1;
+      else if(bytes.length<1150000)start=goal<=7?2:1;
+      else if(bytes.length<1650000)start=3;
+      else if(bytes.length<2600000)start=5;
+      else start=7;
+    }else{
+      if(bytes.length<180000)start=0;
+      else if(bytes.length<450000)start=1;
+      else start=goal<=7?3:2;
+    }
+    const initial=await encodeAt(start);
+    if(initial.pageCount<=goal){
+      let winning={density:densities[start],result:initial};
+      // If it fits, try successively safer / coarser patterns, stopping as
+      // soon as a lower density does not fit.
+      for(let i=start-1;i>=0;i--){
+        const candidate=await encodeAt(i);
+        if(candidate.pageCount>goal)break;
+        winning={density:densities[i],result:candidate};
       }
-      if(result.pageCount<=goal){winning={density,result};hi=mid-1;}
+      return winning;
+    }
+    // Otherwise search only denser patterns. Their dots are harder to
+    // photograph, so choose the first density that achieves the page goal.
+    let lo=start+1,hi=densities.length-1,winning=null;
+    while(lo<=hi){
+      const mid=Math.floor((lo+hi)/2);
+      const next=await encodeAt(mid);
+      if(next.pageCount<=goal){winning={density:densities[mid],result:next};hi=mid-1;}
       else lo=mid+1;
     }
     return winning;
   }
+
   function mimeOf(name) {
     if(/\.mp3$/i.test(name))return"audio/mpeg";
     if(/\.m4a$/i.test(name))return"audio/mp4";
