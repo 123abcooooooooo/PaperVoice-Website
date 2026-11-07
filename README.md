@@ -1,6 +1,13 @@
 # PaperVoice — store sound on paper
 
-**Private website:** https://papervoice.123abcooo.me
+**Main homepage:** https://papervoice.123abcooo.me
+
+**Choose a version:**
+- [PaperVoice Classic (the original QR site)](https://papervoice.123abcooo.me/classic/)
+- [PaperBack Lab (high-density paper archive)](https://papervoice.123abcooo.me/paperback/)
+- [SHEET/7 Research (adaptive seven-sheet experiment)](https://papervoice.123abcooo.me/research/)
+
+All three pages are separate; Classic retains the original recording and decoding features. The main address is only the homepage.
 
 A browser-only application that stores audio in printable QR patterns, and recovers it when scanned. Cloudflare Workers Static Assets hosts the files. Cloudflare Access protects the site with login. No recording is sent to a server for encoding or decoding.
 
@@ -21,9 +28,9 @@ A browser-only application that stores audio in printable QR patterns, and recov
 
 Microphone recording: the browser creates an M4A or WebM file first; exact mode preserves that newly recorded *file* without additional losses. It cannot recover an uncompressed microphone signal if the browser recorded using a lossy codec.
 
-## Using the website
+## Using PaperVoice Classic
 
-1. Sign in through Cloudflare Access at https://papervoice.123abcooo.me
+1. Sign in through Cloudflare Access and open https://papervoice.123abcooo.me/classic/
 2. Select **Create QR message**.
 3. Upload your original audio file, or record directly with the microphone.
 4. Leave **Exact original — zero additional quality loss** selected. Check the exact page-count estimate.
